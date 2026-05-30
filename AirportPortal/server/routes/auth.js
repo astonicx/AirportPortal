@@ -1,0 +1,278 @@
+"use strict";
+const router = require("express").Router();
+const { randomBytes } = require("crypto");
+const { db } = require("../db");
+const { hashPassword, verifyPassword, passwordPolicy } = require("../utils/password");
+const { issueSession, destroy, COOKIE, cookieOpts } = require("../utils/session");
+const { requireAuth } = require("../middleware/auth");
+const {
+    signupSchema,
+    loginSchema,
+    recoverInitSchema,
+    recoverAnswerSchema,
+    recoverResetSchema,
+} = require("../utils/validators");
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+function uniqueDisambiguator(first, last) {
+    const taken = new Set(
+        db
+            .prepare(
+                "SELECT login_disambiguator FROM users WHERE first_name=? AND last_name=?"
+            )
+            .all(first, last)
+            .map((r) => r.login_disambiguator || "")
+    );
+    if (!taken.has("")) return null;
+    for (let i = 2; i < 9999; i++) if (!taken.has(String(i))) return String(i);
+    return randomBytes(3).toString("hex");
+}
+
+function pickIdentity(rows, disambiguator) {
+    if (rows.length === 0) return null;
+    if (rows.length === 1) return rows[0];
+    if (!disambiguator) return { collision: true };
+    return rows.find((r) => r.login_disambiguator === disambiguator) || null;
+}
+
+function publicUser(u) {
+    return {
+        id: u.id,
+        type: u.type,
+        firstName: u.first_name,
+        lastName: u.last_name,
+        email: u.email,
+        mustChangePassword: !!u.must_change_password,
+        mustCompleteProfile: !!u.must_complete_profile,
+        autoLogoutMinutes: u.auto_logout_minutes,
+        defaultSort: u.default_sort,
+    };
+}
+
+// ── POST /api/auth/signup ───────────────────────────────────────────────────
+router.post("/signup", async (req, res, next) => {
+    try {
+        const data = signupSchema.parse(req.body);
+
+        if (data.captchaAnswer.trim() !== data.captchaExpected.trim()) {
+            return res.status(400).json({ error: "CAPTCHA failed" });
+        }
+
+        const policy = passwordPolicy(data.password);
+        if (!policy.ok) return res.status(400).json({ error: policy.reason });
+
+        const disamb = uniqueDisambiguator(data.first_name, data.last_name);
+        const pwHash = await hashPassword(data.password);
+
+        const insertUser = db.prepare(
+            `INSERT INTO users
+       (type, title, first_name, middle_name, last_name, suffix, dob, gender,
+        address1, city, state, zip, country, phone, email, login_disambiguator, password_hash)
+       VALUES ('customer',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+        );
+        const insertQ = db.prepare(
+            "INSERT INTO security_questions (user_id, question, answer_hash) VALUES (?, ?, ?)"
+        );
+
+        let userId;
+        try {
+            const info = insertUser.run(
+                data.title || null,
+                data.first_name,
+                data.middle_name || null,
+                data.last_name,
+                data.suffix || null,
+                data.dob,
+                data.gender,
+                data.address1,
+                data.city,
+                data.state,
+                data.zip,
+                data.country,
+                data.phone,
+                data.email,
+                disamb,
+                pwHash
+            );
+            userId = info.lastInsertRowid;
+        } catch (e) {
+            if (String(e.message).includes("UNIQUE")) {
+                return res.status(409).json({ error: "Email already registered." });
+            }
+            throw e;
+        }
+
+        for (const q of data.securityQuestions) {
+            const ah = await hashPassword(q.answer.trim().toLowerCase());
+            insertQ.run(userId, q.question, ah);
+        }
+
+        res.status(201).json({
+            ok: true,
+            userId,
+            disambiguator: disamb,
+            strength: policy.level,
+        });
+    } catch (e) {
+        next(e);
+    }
+});
+
+// ── POST /api/auth/login ────────────────────────────────────────────────────
+router.post("/login", async (req, res, next) => {
+    try {
+        const data = loginSchema.parse(req.body);
+        const rows = db
+            .prepare("SELECT * FROM users WHERE first_name=? AND last_name=?")
+            .all(data.firstName, data.lastName);
+        const pick = pickIdentity(rows, data.disambiguator);
+        if (!pick) return res.status(401).json({ error: "Invalid credentials" });
+        if (pick.collision) {
+            return res
+                .status(409)
+                .json({ error: "Name collision", needsDisambiguator: true });
+        }
+
+        const user = pick;
+
+        // lockout check
+        const lock = db
+            .prepare("SELECT * FROM user_lockouts WHERE user_id=?")
+            .get(user.id);
+        if (lock?.locked_until && new Date(lock.locked_until) > new Date()) {
+            return res
+                .status(423)
+                .json({ error: "Locked", lockedUntil: lock.locked_until });
+        }
+
+        const ok = await verifyPassword(data.password, user.password_hash);
+        if (!ok) {
+            const failed = (lock?.failed_count || 0) + 1;
+            const lockedUntil =
+                failed >= 3 ? new Date(Date.now() + 3600_000).toISOString() : null;
+            db.prepare(
+                `INSERT INTO user_lockouts (user_id, locked_until, failed_count)
+         VALUES (?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           locked_until = excluded.locked_until,
+           failed_count = excluded.failed_count`
+            ).run(user.id, lockedUntil, failed);
+            return res.status(401).json({
+                error: "Invalid credentials",
+                attemptsRemaining: Math.max(0, 3 - failed),
+                lockedUntil,
+            });
+        }
+
+        db.prepare("DELETE FROM user_lockouts WHERE user_id=?").run(user.id);
+        db.prepare(
+            "UPDATE users SET last_login_ip=?, last_login_datetime=datetime('now') WHERE id=?"
+        ).run(req.ip, user.id);
+
+        const { cookieValue, expires } = issueSession(
+            user.id,
+            !!data.rememberMe,
+            user.auto_logout_minutes
+        );
+        res.cookie(COOKIE, cookieValue, cookieOpts(expires));
+
+        const fresh = db.prepare("SELECT * FROM users WHERE id=?").get(user.id);
+        res.json({ ok: true, user: publicUser(fresh) });
+    } catch (e) {
+        next(e);
+    }
+});
+
+// ── POST /api/auth/logout ───────────────────────────────────────────────────
+router.post("/logout", (req, res) => {
+    if (req.session) destroy(req.session.id);
+    res.clearCookie(COOKIE);
+    res.json({ ok: true });
+});
+
+// ── GET /api/auth/me ────────────────────────────────────────────────────────
+router.get("/me", requireAuth, (req, res) => {
+    const u = req.user;
+    res.json({
+        ...publicUser(u),
+        lastLoginIp: u.last_login_ip,
+        lastLoginDatetime: u.last_login_datetime,
+    });
+});
+
+// ── Password recovery (customers only) ──────────────────────────────────────
+const resetTokens = new Map(); // userId -> { token, expires }
+
+router.post("/recover/init", (req, res, next) => {
+    try {
+        const { firstName, lastName, dob } = recoverInitSchema.parse(req.body);
+        const user = db
+            .prepare(
+                "SELECT * FROM users WHERE first_name=? AND last_name=? AND dob=? AND type='customer'"
+            )
+            .get(firstName, lastName, dob);
+        if (!user) return res.status(404).json({ error: "Not found" });
+        const qs = db
+            .prepare("SELECT id, question FROM security_questions WHERE user_id=?")
+            .all(user.id);
+        res.json({ userId: user.id, questions: qs.map((q) => q.question) });
+    } catch (e) {
+        next(e);
+    }
+});
+
+router.post("/recover/answer", async (req, res, next) => {
+    try {
+        const { userId, answers } = recoverAnswerSchema.parse(req.body);
+        const rows = db
+            .prepare(
+                "SELECT answer_hash FROM security_questions WHERE user_id=? ORDER BY id"
+            )
+            .all(userId);
+        if (rows.length !== answers.length) {
+            return res.status(400).json({ error: "Answers mismatch" });
+        }
+        for (let i = 0; i < rows.length; i++) {
+            const ok = await verifyPassword(
+                answers[i].trim().toLowerCase(),
+                rows[i].answer_hash
+            );
+            if (!ok) return res.status(401).json({ error: "Recovery failed" });
+        }
+        const token = randomBytes(24).toString("hex");
+        resetTokens.set(userId, { token, expires: Date.now() + 10 * 60_000 });
+        res.json({ resetToken: token });
+    } catch (e) {
+        next(e);
+    }
+});
+
+router.post("/recover/reset", async (req, res, next) => {
+    try {
+        const { resetToken, password } = recoverResetSchema.parse(req.body);
+        const policy = passwordPolicy(password);
+        if (!policy.ok) return res.status(400).json({ error: policy.reason });
+
+        let userId = null;
+        for (const [uid, entry] of resetTokens.entries()) {
+            if (entry.token === resetToken && entry.expires > Date.now()) {
+                userId = uid;
+                break;
+            }
+        }
+        if (!userId) {
+            return res.status(400).json({ error: "Invalid or expired token" });
+        }
+
+        const hash = await hashPassword(password);
+        db.prepare(
+            "UPDATE users SET password_hash=?, must_change_password=0 WHERE id=?"
+        ).run(hash, userId);
+        resetTokens.delete(userId);
+        res.json({ ok: true });
+    } catch (e) {
+        next(e);
+    }
+});
+
+module.exports = router;

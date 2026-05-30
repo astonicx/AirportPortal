@@ -1,59 +1,50 @@
 "use strict";
 const axios = require("axios");
 
-/**
- * Server-side Axios helper — mirrors the client ApiClient shape.
- */
-class ApiClient {
-  constructor(baseURL = "") {
-    this.instance = axios.create({
-      baseURL,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  setToken(token) {
-    if (token) {
-      this.instance.defaults.headers.common["Authorization"] = "Bearer " + token;
-    } else {
-      delete this.instance.defaults.headers.common["Authorization"];
-    }
-  }
-
-  async request(config) {
-    try {
-      const res = await this.instance.request(config);
-      return { success: true, data: res.data };
-    } catch (error) {
-      const message =
-        error?.response?.data?.message || error?.message || "Request failed";
-      return { success: false, error: message };
-    }
-  }
-
-  async getAll(url, config = {}) {
-    return this.request({ url, method: "GET", ...config });
-  }
-
-  async getOne(url, config = {}) {
-    return this.request({ url, method: "GET", ...config });
-  }
-
-  async create(url, data, config = {}) {
-    return this.request({ url, method: "POST", data, ...config });
-  }
-
-  async update(url, data, config = {}) {
-    return this.request({ url, method: "PUT", data, ...config });
-  }
-
-  async patch(url, data, config = {}) {
-    return this.request({ url, method: "PATCH", data, ...config });
-  }
-
-  async delete(url, config = {}) {
-    return this.request({ url, method: "DELETE", ...config });
+class ApiError extends Error {
+  constructor(status, code, message) {
+    super(message);
+    this.status = status;
+    this.code = code;
   }
 }
 
-module.exports = { ApiClient };
+const BASE = process.env.BDPA_BASE_URL || "";
+const TOKEN = process.env.BEARER_TOKEN || "";
+
+const instance = axios.create({
+  baseURL: BASE,
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${TOKEN}`,
+  },
+  timeout: 15000,
+});
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function request(config, attempt = 0) {
+  try {
+    const res = await instance.request(config);
+    return res.data;
+  } catch (err) {
+    const status = err?.response?.status ?? 0;
+    if (status === 555 && attempt < 3) {
+      await sleep(200 * Math.pow(2, attempt));
+      return request(config, attempt + 1);
+    }
+    const message =
+      err?.response?.data?.error || err?.message || "Upstream failure";
+    throw new ApiError(status || 502, "UPSTREAM_ERROR", message);
+  }
+}
+
+module.exports = {
+  ApiError,
+  get: (url, config = {}) => request({ url, method: "GET", ...config }),
+  post: (url, data, config = {}) => request({ url, method: "POST", data, ...config }),
+  put: (url, data, config = {}) => request({ url, method: "PUT", data, ...config }),
+  patch: (url, data, config = {}) => request({ url, method: "PATCH", data, ...config }),
+  delete: (url, config = {}) => request({ url, method: "DELETE", ...config }),
+};
+

@@ -1,60 +1,39 @@
 "use strict";
-const bcrypt = require("bcryptjs");
+const argon2 = require("argon2");
 
-const SALT_ROUNDS = 10;
+// argon2id with memory-hard params. Salt is generated internally (16 bytes)
+// and embedded in the returned PHC string. One column `password_hash` is enough.
+const ARGON_OPTS = {
+  type: argon2.argon2id,
+  memoryCost: 19456, // 19 MiB
+  timeCost: 2,
+  parallelism: 1,
+};
 
-/**
- * Hash a plain-text password.
- * @param {string} password
- * @returns {Promise<string>} bcrypt hash
- */
-async function hashPassword(password) {
-  if (!password || typeof password !== "string" || password.trim().length === 0) {
+async function hashPassword(plain) {
+  if (typeof plain !== "string" || plain.length === 0) {
     throw new Error("Password must be a non-empty string.");
   }
-  return bcrypt.hash(password, SALT_ROUNDS);
+  return argon2.hash(plain, ARGON_OPTS);
 }
 
-/**
- * Compare a plain-text password against a bcrypt hash.
- * @param {string} password
- * @param {string} hash
- * @returns {Promise<boolean>}
- */
-async function verifyPassword(password, hash) {
-  if (!password || typeof password !== "string") {
-    throw new Error("Password must be a non-empty string.");
+async function verifyPassword(plain, phc) {
+  if (typeof plain !== "string" || typeof phc !== "string") return false;
+  try {
+    return await argon2.verify(phc, plain);
+  } catch {
+    return false;
   }
-  if (!hash || typeof hash !== "string") {
-    throw new Error("Hash must be a valid string.");
+}
+
+// Server-side enforcement of the Req 7 length policy.
+function passwordPolicy(plain) {
+  const len = (plain || "").length;
+  if (len <= 10) {
+    return { ok: false, level: "weak", reason: "Password must be longer than 10 characters." };
   }
-  return bcrypt.compare(password, hash);
+  if (len >= 18) return { ok: true, level: "strong", reason: null };
+  return { ok: true, level: "medium", reason: null };
 }
 
-/**
- * Return a numeric strength score 0-4 for the given password.
- * @param {string} password
- * @returns {number}
- */
-function getPasswordStrength(password) {
-  if (!password) return 0;
-  let score = 0;
-  if (password.length >= 8) score++;
-  if (password.length >= 12) score++;
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
-  if (/d/.test(password)) score++;
-  if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
-  return Math.min(score, 4);
-}
-
-/**
- * Return a human-readable label for the password strength.
- * @param {string} password
- * @returns {string}
- */
-function getPasswordStrengthLabel(password) {
-  const labels = ["Weak", "Fair", "Good", "Strong", "Very Strong"];
-  return labels[getPasswordStrength(password)];
-}
-
-module.exports = { hashPassword, verifyPassword, getPasswordStrength, getPasswordStrengthLabel };
+module.exports = { hashPassword, verifyPassword, passwordPolicy };
