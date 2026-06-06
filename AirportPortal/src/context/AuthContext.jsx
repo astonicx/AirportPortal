@@ -22,8 +22,14 @@ export function AuthProvider({ children }) {
         refresh();
     }, [refresh]);
 
-    const login = async (email, password, captcha, rememberMe) => {
-        await api.post("/api/auth/login", { email, password, captcha, rememberMe });
+    const login = async (firstName, lastName, password, disambiguator, rememberMe) => {
+        await api.post("/api/auth/login", {
+            firstName,
+            lastName,
+            password,
+            disambiguator: disambiguator || undefined,
+            rememberMe,
+        });
         await refresh();
     };
     const logout = async () => {

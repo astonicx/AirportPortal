@@ -56,9 +56,21 @@ export default function Signup() {
         setBusy(true);
         try {
             await api.post("/api/auth/signup", {
-                ...form,
+                first_name: form.firstName,
+                middle_name: form.middleName,
+                last_name: form.lastName,
+                email: form.email,
+                password: form.password,
+                dob: form.dob,
+                gender: form.gender,
+                phone: form.phone,
+                address1: form.address1,
+                city: form.city,
+                state: form.state,
+                zip: form.zip,
+                country: form.country,
                 securityQuestions: sq,
-                captcha,
+                captchaAnswer: captcha,
                 captchaExpected: expected,
             });
             navigate("/login", { replace: true });
