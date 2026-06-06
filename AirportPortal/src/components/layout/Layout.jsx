@@ -23,6 +23,7 @@ function Nav() {
                 </Link>
                 <nav className="ml-4 flex flex-wrap gap-1 text-sm">
                     <NavLink to="/flights" className={link}>Flights</NavLink>
+                    {user && <NavLink to="/book" className={link}>Book</NavLink>}
                     <NavLink to="/ticket-lookup" className={link}>Lookup</NavLink>
                     {user && <NavLink to="/dashboard" className={link}>Dashboard</NavLink>}
                     {user && <NavLink to="/settings" className={link}>Settings</NavLink>}
