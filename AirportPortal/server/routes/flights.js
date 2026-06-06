@@ -19,13 +19,42 @@ const LOCK_MIN = 10;
 function sortFlights(list, sortBy, sortDir) {
     if (!SORTABLE.has(sortBy)) return list;
     const dir = sortDir === "desc" ? -1 : 1;
+    const key = sortBy === "time" ? "timeMs" : sortBy;
     return [...list].sort((a, b) => {
-        const av = a[sortBy] ?? "";
-        const bv = b[sortBy] ?? "";
+        const av = a[key] ?? "";
+        const bv = b[key] ?? "";
         if (av < bv) return -1 * dir;
         if (av > bv) return 1 * dir;
         return 0;
     });
+}
+
+// Map an upstream flight object to the shape the UI table renders.
+// Upstream uses comingFrom/landingAt/departingTo and epoch-ms timestamps;
+// the table expects `airport`, `city`, and a human-readable `time`.
+function normalizeFlight(f) {
+    const type = f.type === "arrival" ? "arrival" : "departure";
+    const arriving = type === "arrival";
+    const whenMs = arriving ? f.arriveAtReceiver : f.departFromSender;
+    const counterpart = arriving ? f.comingFrom : f.departingTo;
+    let time = "";
+    if (whenMs) {
+        const d = new Date(whenMs);
+        time = `${d.toLocaleDateString("en-US")} ${d.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+        })}`;
+    }
+    return {
+        ...f,
+        type,
+        flight_id: f.flight_id || f.id,
+        airport: counterpart || f.landingAt || "",
+        city: counterpart || "",
+        time,
+        timeMs: whenMs || 0,
+        seatPrice: f.seatPrice ?? f.seat_price ?? 0,
+    };
 }
 
 function matchesQuery(f, q) {
@@ -53,7 +82,12 @@ router.get("/", async (req, res, next) => {
 
         let flights = [];
         try {
-            const upstream = await api.get(`/v1/flights/search?type=${type}`);
+            // `sort=desc` returns the newest (currently scheduled) flights.
+            // Without it the API returns the oldest flights, which are all
+            // already "past"/"cancelled".
+            const upstream = await api.get(
+                `/v1/flights/search?type=${type}&sort=desc`
+            );
             flights = upstream.flights || upstream || [];
         } catch (e) {
             // Fallback: serve from local cache if upstream is unreachable.
@@ -63,11 +97,15 @@ router.get("/", async (req, res, next) => {
                 .map((r) => JSON.parse(r.payload_json));
         }
 
-        flights = flights
-            .filter((f) => f.status !== "past")
-            .filter((f) => matchesQuery(f, q));
-
         for (const f of flights) putCached(f.flight_id || f.id, f);
+
+        // The upstream `type` filter is not authoritative (it returns both
+        // arrivals and departures), so filter locally as well.
+        flights = flights
+            .filter((f) => f.type === type)
+            .filter((f) => f.status !== "past")
+            .map(normalizeFlight)
+            .filter((f) => matchesQuery(f, q));
 
         const sorted = sortFlights(flights, sortBy, sortDir);
         const start = (page - 1) * pageSize;
@@ -86,12 +124,12 @@ router.get("/", async (req, res, next) => {
 router.get("/:id", async (req, res, next) => {
     try {
         const cached = getCached(req.params.id);
-        if (cached) return res.json(cached.payload);
+        if (cached) return res.json(normalizeFlight(cached.payload));
         const data = await api.get(`/v1/flights/search?flight_id=${req.params.id}`);
         const flight = (data.flights || [])[0];
         if (!flight) return res.status(404).json({ error: "Flight not found" });
         putCached(req.params.id, flight);
-        res.json(flight);
+        res.json(normalizeFlight(flight));
     } catch (e) {
         next(e);
     }

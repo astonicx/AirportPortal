@@ -30,8 +30,8 @@ export default function FlightDetail() {
                 {flight.airline} {flight.flightNumber}
             </h1>
             <dl className="grid grid-cols-2 gap-2 text-sm">
-                <dt className="font-medium">Origin</dt><dd>{flight.sender || flight.from}</dd>
-                <dt className="font-medium">Destination</dt><dd>{flight.receiver || flight.to}</dd>
+                <dt className="font-medium">Origin</dt><dd>{flight.comingFrom || "—"}</dd>
+                <dt className="font-medium">Destination</dt><dd>{flight.departingTo || flight.landingAt || "—"}</dd>
                 <dt className="font-medium">Departs</dt><dd>{flight.departFromSender || "—"}</dd>
                 <dt className="font-medium">Arrives</dt><dd>{flight.arriveAtReceiver || "—"}</dd>
                 <dt className="font-medium">Gate</dt><dd>{flight.gate || "—"}</dd>
