@@ -15,14 +15,21 @@ const completionGate = require("./middleware/completionGate");
 const { authLimiter, bookingLimiter } = require("./middleware/rateLimit");
 
 const { runMigrations } = require("./db");
-const { seedRoot } = require("./db/seed");
+const { seedRoot, seedTestUsers } = require("./db/seed");
 
 // Run migrations BEFORE requiring routes — several modules prepare
 // statements against the schema at require-time.
 runMigrations();
-seedRoot().catch((e) => console.error("seed failed:", e));
+seedRoot()
+  .then(() => seedTestUsers())
+  .catch((e) => console.error("seed failed:", e));
 
 const app = express();
+
+// Behind a reverse proxy (Codespaces, nginx, etc.) the client IP arrives in
+// the X-Forwarded-For header. Trust the first proxy hop so express-rate-limit
+// can key on the real client IP instead of throwing ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set("trust proxy", 1);
 
 // ── Security + parsers ───────────────────────────────────────────────────────
 app.use(
