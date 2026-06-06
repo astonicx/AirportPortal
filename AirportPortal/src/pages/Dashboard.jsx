@@ -20,6 +20,12 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground">
                     Last login: {data.profile.lastLoginDatetime || "—"} from {data.profile.lastLoginIp || "—"}
                 </p>
+                <Link
+                    to="/book"
+                    className="mt-3 inline-block rounded bg-milwaukeeBlue px-4 py-2 text-white hover:opacity-90"
+                >
+                    Book a flight
+                </Link>
             </section>
             <section>
                 <h2 className="text-lg font-semibold">Upcoming</h2>

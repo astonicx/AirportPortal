@@ -82,6 +82,76 @@ router.get("/", async (req, res, next) => {
     }
 });
 
+// ── GET /api/flights/search ─────────────────────────────────────────────────
+// Booking search: user picks where they want to ARRIVE (city/state/country/
+// airport) and the departure DATE. They always depart from our airport, so we
+// only search departures. Results are limited to flights that can actually be
+// booked (bookable, scheduled, > 24h away) and include the seat price.
+function flightDestinationMatches(f, needle) {
+    if (!needle) return true;
+    const n = needle.toLowerCase();
+    return ["city", "state", "country", "airport", "receiver", "to"].some((k) =>
+        String(f[k] ?? "")
+            .toLowerCase()
+            .includes(n)
+    );
+}
+
+function flightDepartDate(f) {
+    const d = f.departFromSender || f.departAtSender || f.time || "";
+    return String(d).slice(0, 10); // YYYY-MM-DD
+}
+
+router.get("/search", async (req, res, next) => {
+    try {
+        const destination = (req.query.destination || "").trim();
+        const date = (req.query.date || "").trim();
+
+        let flights = [];
+        try {
+            const upstream = await api.get("/v1/flights/search?type=departure");
+            flights = upstream.flights || upstream || [];
+        } catch (e) {
+            flights = db
+                .prepare("SELECT payload_json FROM flight_cache")
+                .all()
+                .map((r) => JSON.parse(r.payload_json));
+        }
+
+        const cutoff = Date.now() + 24 * 3600 * 1000;
+        const results = flights.filter((f) => {
+            if (!f.bookable || f.status !== "scheduled") return false;
+            if (new Date(f.arriveAtReceiver || 0).getTime() <= cutoff) return false;
+            if (!flightDestinationMatches(f, destination)) return false;
+            if (date && flightDepartDate(f) !== date) return false;
+            return true;
+        });
+
+        for (const f of results) putCached(f.flight_id || f.id, f);
+
+        res.json({
+            total: results.length,
+            items: results.map((f) => ({
+                flight_id: f.flight_id || f.id,
+                flightNumber: f.flightNumber,
+                airline: f.airline,
+                city: f.city,
+                state: f.state,
+                country: f.country,
+                airport: f.airport,
+                receiver: f.receiver,
+                departFromSender: f.departFromSender,
+                arriveAtReceiver: f.arriveAtReceiver,
+                gate: f.gate,
+                status: f.status,
+                seatPrice: f.seat_price ?? f.seatPrice ?? 0,
+            })),
+        });
+    } catch (e) {
+        next(e);
+    }
+});
+
 // ── GET /api/flights/:id ────────────────────────────────────────────────────
 router.get("/:id", async (req, res, next) => {
     try {
