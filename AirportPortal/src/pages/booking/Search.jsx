@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import Spinner from "@/components/Spinner";
@@ -11,12 +11,11 @@ export default function BookingSearch() {
     const [err, setErr] = useState(null);
     const [busy, setBusy] = useState(false);
 
-    const search = async (e) => {
-        e.preventDefault();
+    const runSearch = async (dest = "", dt = "") => {
         setErr(null);
         setBusy(true);
         try {
-            const qs = new URLSearchParams({ destination, date }).toString();
+            const qs = new URLSearchParams({ destination: dest, date: dt }).toString();
             const r = await api.get(`/api/flights/search?${qs}`);
             setResults(r.items);
         } catch (e) {
@@ -26,21 +25,31 @@ export default function BookingSearch() {
         }
     };
 
+    // Show all currently bookable departures on load, like the Departures list.
+    useEffect(() => {
+        runSearch();
+    }, []);
+
+    const search = async (e) => {
+        e.preventDefault();
+        await runSearch(destination, date);
+    };
+
     return (
         <div className="mx-auto max-w-2xl space-y-4">
             <h1 className="text-xl font-bold">Book a flight</h1>
             <p className="text-sm text-muted-foreground">
-                You depart from our airport. Tell us where you want to arrive and when.
+                You depart from our airport. Browse all bookable departures below, or
+                filter by where you want to arrive and when.
             </p>
             <form onSubmit={search} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <label className="block text-sm sm:col-span-2">
                     Destination (city, state, country, or airport)
                     <input
                         type="text"
-                        required
                         value={destination}
                         onChange={(e) => setDestination(e.target.value)}
-                        placeholder="e.g. Chicago"
+                        placeholder="e.g. Chicago (optional)"
                         className="mt-1 w-full rounded border px-3 py-2"
                     />
                 </label>
@@ -48,7 +57,6 @@ export default function BookingSearch() {
                     Date
                     <input
                         type="date"
-                        required
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
                         className="mt-1 w-full rounded border px-3 py-2"
@@ -84,7 +92,7 @@ export default function BookingSearch() {
                                     <td className="px-3 py-2">{f.flightNumber}</td>
                                     <td className="px-3 py-2">{f.airline}</td>
                                     <td className="px-3 py-2">{f.city || f.airport || f.receiver}</td>
-                                    <td className="px-3 py-2">{f.departFromSender}</td>
+                                    <td className="px-3 py-2">{f.departTime || f.departFromSender}</td>
                                     <td className="px-3 py-2">${Number(f.seatPrice).toFixed(2)}</td>
                                     <td className="px-3 py-2">
                                         <button

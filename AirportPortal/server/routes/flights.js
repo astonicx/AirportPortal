@@ -128,7 +128,7 @@ router.get("/", async (req, res, next) => {
 function flightDestinationMatches(f, needle) {
     if (!needle) return true;
     const n = needle.toLowerCase();
-    return ["city", "state", "country", "airport", "receiver", "to"].some((k) =>
+    return ["city", "state", "country", "airport", "receiver", "to", "departingTo", "landingAt"].some((k) =>
         String(f[k] ?? "")
             .toLowerCase()
             .includes(n)
@@ -147,7 +147,12 @@ router.get("/search", async (req, res, next) => {
 
         let flights = [];
         try {
-            const upstream = await api.get("/v1/flights/search?type=departure");
+            // `sort=desc` returns the newest (currently scheduled/bookable)
+            // flights. Without it the API returns the oldest flights, which are
+            // all already past/unbookable — matching the departures list above.
+            const upstream = await api.get(
+                "/v1/flights/search?type=departure&sort=desc"
+            );
             flights = upstream.flights || upstream || [];
         } catch (e) {
             flights = db
@@ -167,23 +172,36 @@ router.get("/search", async (req, res, next) => {
 
         for (const f of results) putCached(f.flight_id || f.id, f);
 
+        const fmtTime = (ms) => {
+            if (!ms) return "";
+            const d = new Date(ms);
+            return `${d.toLocaleDateString("en-US")} ${d.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+            })}`;
+        };
+
         res.json({
             total: results.length,
-            items: results.map((f) => ({
-                flight_id: f.flight_id || f.id,
-                flightNumber: f.flightNumber,
-                airline: f.airline,
-                city: f.city,
-                state: f.state,
-                country: f.country,
-                airport: f.airport,
-                receiver: f.receiver,
-                departFromSender: f.departFromSender,
-                arriveAtReceiver: f.arriveAtReceiver,
-                gate: f.gate,
-                status: f.status,
-                seatPrice: f.seat_price ?? f.seatPrice ?? 0,
-            })),
+            items: results.map((f) => {
+                const destination = f.departingTo || f.landingAt || f.city || f.airport || "";
+                return {
+                    flight_id: f.flight_id || f.id,
+                    flightNumber: f.flightNumber,
+                    airline: f.airline,
+                    city: destination,
+                    state: f.state,
+                    country: f.country,
+                    airport: destination,
+                    receiver: f.receiver,
+                    departFromSender: f.departFromSender,
+                    departTime: fmtTime(f.departFromSender),
+                    arriveAtReceiver: f.arriveAtReceiver,
+                    gate: f.gate,
+                    status: f.status,
+                    seatPrice: f.seat_price ?? f.seatPrice ?? 0,
+                };
+            }),
         });
     } catch (e) {
         next(e);
