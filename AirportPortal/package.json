@@ -11,7 +11,18 @@
     "preview": "vite preview",
     "start": "node server/server.js",
     "lint": "eslint . --ext .js,.jsx --max-warnings=0 || true",
-    "test": "vitest run"
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "vitest run --config vitest.config.js --passWithNoTests",
+    "test:backend:watch": "vitest --config vitest.config.js --passWithNoTests",
+    "test:frontend": "vitest run --config vitest.frontend.config.js --passWithNoTests",
+    "test:frontend:watch": "vitest --config vitest.frontend.config.js --passWithNoTests",
+    "test:coverage": "npm run test:coverage:backend && npm run test:coverage:frontend",
+    "test:coverage:backend": "vitest run --config vitest.config.js --coverage --passWithNoTests",
+    "test:coverage:frontend": "vitest run --config vitest.frontend.config.js --coverage --passWithNoTests",
+    "test:e2e": "playwright test --pass-with-no-tests",
+    "test:e2e:ui": "playwright test --ui --pass-with-no-tests",
+    "test:e2e:install": "playwright install chromium",
+    "test:e2e:server": "mkdir -p tests/.tmp && DB_PATH=tests/.tmp/e2e.sqlite NODE_ENV=test SESSION_COOKIE_SECRET=test-session-secret npm run dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -67,11 +78,17 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
+    "@vitest/coverage-v8": "^4.1.8",
     "autoprefixer": "^10.4.20",
     "concurrently": "^8.2.2",
+    "jsdom": "^29.1.1",
+    "msw": "^2.14.6",
     "nodemon": "^3.0.2",
     "postcss": "^8.4.47",
     "supertest": "^7.2.2",
