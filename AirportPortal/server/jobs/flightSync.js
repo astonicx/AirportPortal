@@ -10,7 +10,7 @@ let sweepTimer = null;
 async function tick() {
     try {
         for (const type of ["arrival", "departure"]) {
-            const data = await api.get(`/v1/flights?type=${type}`);
+            const data = await api.get(`/v1/flights/search?type=${type}`);
             const flights = data.flights || data || [];
             for (const f of flights) putCached(f.flight_id || f.id, f);
         }

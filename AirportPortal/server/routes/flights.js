@@ -53,7 +53,7 @@ router.get("/", async (req, res, next) => {
 
         let flights = [];
         try {
-            const upstream = await api.get(`/v1/flights?type=${type}`);
+            const upstream = await api.get(`/v1/flights/search?type=${type}`);
             flights = upstream.flights || upstream || [];
         } catch (e) {
             // Fallback: serve from local cache if upstream is unreachable.
@@ -87,9 +87,11 @@ router.get("/:id", async (req, res, next) => {
     try {
         const cached = getCached(req.params.id);
         if (cached) return res.json(cached.payload);
-        const data = await api.get(`/v1/flights/${req.params.id}`);
-        putCached(req.params.id, data);
-        res.json(data);
+        const data = await api.get(`/v1/flights/search?flight_id=${req.params.id}`);
+        const flight = (data.flights || [])[0];
+        if (!flight) return res.status(404).json({ error: "Flight not found" });
+        putCached(req.params.id, flight);
+        res.json(flight);
     } catch (e) {
         next(e);
     }

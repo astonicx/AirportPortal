@@ -35,8 +35,9 @@ const schema = z.object({
 async function getFlight(id) {
     const c = getCached(id);
     if (c) return c.payload;
-    const f = await api.get(`/v1/flights/${id}`);
-    putCached(id, f);
+    const r = await api.get(`/v1/flights/search?flight_id=${id}`);
+    const f = (r.flights || [])[0];
+    if (f) putCached(id, f);
     return f;
 }
 
@@ -61,17 +62,20 @@ router.post("/", async (req, res, next) => {
         }
 
         // No Fly + airline-ban
-        let noFly = { entries: [] };
+        let noFly = { noFlyList: [] };
         try {
-            noFly = await api.get("/v1/no-fly-list");
+            noFly = await api.get("/v1/info/no-fly-list");
         } catch { }
         const norm = (s) => (s || "").trim().toLowerCase();
-        const blocked = (noFly.entries || []).find(
+        const pad = (n) => String(n).padStart(2, "0");
+        const entryDob = (bd) =>
+            bd && bd.year ? `${bd.year}-${pad(bd.month)}-${pad(bd.day)}` : "";
+        const blocked = (noFly.noFlyList || []).find(
             (e) =>
-                norm(e.first) === norm(data.passenger.first) &&
-                norm(e.last) === norm(data.passenger.last) &&
-                norm(e.dob) === norm(data.passenger.dob) &&
-                norm(e.gender) === norm(data.passenger.gender)
+                norm(e.name?.first) === norm(data.passenger.first) &&
+                norm(e.name?.last) === norm(data.passenger.last) &&
+                entryDob(e.birthdate) === norm(data.passenger.dob) &&
+                norm(e.sex) === norm(data.passenger.gender)
         );
         if (blocked) return res.status(403).json({ error: "No Fly List match" });
 
