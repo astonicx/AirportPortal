@@ -57,10 +57,12 @@ export default function Flights() {
                                 <tr>
                                     <th className="px-3 py-2 text-left">Flight</th>
                                     <th className="px-3 py-2 text-left">Airline</th>
-                                    <th className="px-3 py-2 text-left">{type === "arrival" ? "From" : "To"}</th>
+                                    <th className="px-3 py-2 text-left">From</th>
+                                    <th className="px-3 py-2 text-left">To</th>
                                     <th className="px-3 py-2 text-left">Time</th>
                                     <th className="px-3 py-2 text-left">Gate</th>
                                     <th className="px-3 py-2 text-left">Status</th>
+                                    <th className="px-3 py-2 text-left">Bookable</th>
                                     <th className="px-3 py-2"></th>
                                 </tr>
                             </thead>
@@ -69,10 +71,22 @@ export default function Flights() {
                                     <tr key={f.flight_id || f.id} className="border-t">
                                         <td className="px-3 py-2">{f.flightNumber}</td>
                                         <td className="px-3 py-2">{f.airline}</td>
-                                        <td className="px-3 py-2">{f.city || f.airport}</td>
+                                        <td className="px-3 py-2">{f.from || "\u2014"}</td>
+                                        <td className="px-3 py-2">{f.to || "\u2014"}</td>
                                         <td className="px-3 py-2">{f.time}</td>
                                         <td className="px-3 py-2">{f.gate}</td>
                                         <td className="px-3 py-2">{f.status}</td>
+                                        <td className="px-3 py-2">
+                                            {f.canBook ? (
+                                                <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                                                    Bookable
+                                                </span>
+                                            ) : (
+                                                <span className="rounded bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                                    Not bookable
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-3 py-2">
                                             <Link
                                                 to={`/flights/${f.flight_id || f.id}`}
@@ -84,7 +98,7 @@ export default function Flights() {
                                     </tr>
                                 ))}
                                 {!data.items.length && (
-                                    <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">No flights.</td></tr>
+                                    <tr><td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">No flights.</td></tr>
                                 )}
                             </tbody>
                         </table>

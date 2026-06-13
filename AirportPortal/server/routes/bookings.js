@@ -6,6 +6,11 @@ const { db } = require("../db");
 const { getCached, putCached } = require("../utils/cache");
 const { bagFees, confirmationCode } = require("../utils/pricing");
 
+// A flight may only be booked here if it is landing at the airport this portal
+// serves. The upstream `type` field is not authoritative, so we match on
+// `landingAt === HOME_AIRPORT`.
+const HOME_AIRPORT = (process.env.HOME_AIRPORT || "").trim();
+
 const schema = z.object({
     flightId: z.string(),
     passenger: z.object({
@@ -49,8 +54,8 @@ router.post("/", async (req, res, next) => {
         if (!flight.bookable || flight.status !== "scheduled") {
             return res.status(400).json({ error: "Flight not bookable" });
         }
-        // Only flights landing at our airport (arrivals) may be booked.
-        if (flight.type !== "arrival") {
+        // Only flights landing at our airport may be booked.
+        if (HOME_AIRPORT && flight.landingAt !== HOME_AIRPORT) {
             return res
                 .status(400)
                 .json({ error: "Only flights landing at this airport can be booked" });
