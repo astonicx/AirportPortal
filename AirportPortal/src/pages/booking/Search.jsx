@@ -5,17 +5,17 @@ import Spinner from "@/components/Spinner";
 
 export default function BookingSearch() {
     const navigate = useNavigate();
-    const [destination, setDestination] = useState("");
+    const [origin, setOrigin] = useState("");
     const [date, setDate] = useState("");
     const [results, setResults] = useState(null);
     const [err, setErr] = useState(null);
     const [busy, setBusy] = useState(false);
 
-    const runSearch = async (dest = "", dt = "") => {
+    const runSearch = async (org = "", dt = "") => {
         setErr(null);
         setBusy(true);
         try {
-            const qs = new URLSearchParams({ destination: dest, date: dt }).toString();
+            const qs = new URLSearchParams({ origin: org, date: dt }).toString();
             const r = await api.get(`/api/flights/search?${qs}`);
             setResults(r.items);
         } catch (e) {
@@ -25,30 +25,31 @@ export default function BookingSearch() {
         }
     };
 
-    // Show all currently bookable departures on load, like the Departures list.
+    // Show all currently bookable flights landing at our airport on load.
     useEffect(() => {
         runSearch();
     }, []);
 
     const search = async (e) => {
         e.preventDefault();
-        await runSearch(destination, date);
+        await runSearch(origin, date);
     };
 
     return (
         <div className="mx-auto max-w-2xl space-y-4">
             <h1 className="text-xl font-bold">Book a flight</h1>
             <p className="text-sm text-muted-foreground">
-                You depart from our airport. Browse all bookable departures below, or
-                filter by where you want to arrive and when.
+                You can only book flights landing at our airport. Browse all bookable
+                arrivals below, or filter by where the flight departs from and when it
+                lands.
             </p>
             <form onSubmit={search} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <label className="block text-sm sm:col-span-2">
-                    Destination (city, state, country, or airport)
+                    Origin (city, state, country, or airport)
                     <input
                         type="text"
-                        value={destination}
-                        onChange={(e) => setDestination(e.target.value)}
+                        value={origin}
+                        onChange={(e) => setOrigin(e.target.value)}
                         placeholder="e.g. Chicago (optional)"
                         className="mt-1 w-full rounded border px-3 py-2"
                     />
@@ -80,8 +81,8 @@ export default function BookingSearch() {
                             <tr>
                                 <th className="px-3 py-2 text-left">Flight</th>
                                 <th className="px-3 py-2 text-left">Airline</th>
-                                <th className="px-3 py-2 text-left">To</th>
-                                <th className="px-3 py-2 text-left">Departs</th>
+                                <th className="px-3 py-2 text-left">From</th>
+                                <th className="px-3 py-2 text-left">Arrives</th>
                                 <th className="px-3 py-2 text-left">Price</th>
                                 <th className="px-3 py-2"></th>
                             </tr>
@@ -91,8 +92,8 @@ export default function BookingSearch() {
                                 <tr key={f.flight_id} className="border-t">
                                     <td className="px-3 py-2">{f.flightNumber}</td>
                                     <td className="px-3 py-2">{f.airline}</td>
-                                    <td className="px-3 py-2">{f.city || f.airport || f.receiver}</td>
-                                    <td className="px-3 py-2">{f.departTime || f.departFromSender}</td>
+                                    <td className="px-3 py-2">{f.from || f.city || f.airport}</td>
+                                    <td className="px-3 py-2">{f.arriveTime || f.arriveAtReceiver}</td>
                                     <td className="px-3 py-2">${Number(f.seatPrice).toFixed(2)}</td>
                                     <td className="px-3 py-2">
                                         <button

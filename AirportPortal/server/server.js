@@ -11,6 +11,7 @@ const helmet = require("helmet");
 const requestId = require("./middleware/requestId");
 const errorHandler = require("./middleware/errorHandler");
 const { attachUser } = require("./middleware/auth");
+const bookingSession = require("./middleware/bookingSession");
 const completionGate = require("./middleware/completionGate");
 const { authLimiter, bookingLimiter } = require("./middleware/rateLimit");
 
@@ -48,6 +49,7 @@ app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser(process.env.SESSION_COOKIE_SECRET));
 app.use(requestId);
 app.use(attachUser);
+app.use(bookingSession);
 app.use(completionGate);
 
 // ── Rate limiters (apply BEFORE the routers they protect) ────────────────────

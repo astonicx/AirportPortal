@@ -22,6 +22,7 @@ export default function FlightDetail() {
 
     const canBook =
         flight.bookable && flight.status === "scheduled" &&
+        flight.type === "arrival" &&
         new Date(flight.arriveAtReceiver || 0).getTime() > Date.now() + 24 * 3600_000;
 
     return (

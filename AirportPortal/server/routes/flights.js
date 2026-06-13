@@ -4,7 +4,6 @@ const api = require("../utils/apiClient");
 const { getCached, putCached } = require("../utils/cache");
 const { db } = require("../db");
 const { SEATS } = require("../utils/seats");
-const { requireAuth } = require("../middleware/auth");
 
 const SORTABLE = new Set([
     "flightNumber",
@@ -121,37 +120,39 @@ router.get("/", async (req, res, next) => {
 });
 
 // ── GET /api/flights/search ─────────────────────────────────────────────────
-// Booking search: user picks where they want to ARRIVE (city/state/country/
-// airport) and the departure DATE. They always depart from our airport, so we
-// only search departures. Results are limited to flights that can actually be
-// booked (bookable, scheduled, > 24h away) and include the seat price.
-function flightDestinationMatches(f, needle) {
+// Booking search. Only flights LANDING at our airport may be booked, so we
+// search arrivals. The user can optionally filter by ORIGIN (where the flight
+// comes from) and the arrival DATE. Results are limited to flights that can
+// actually be booked (bookable, scheduled, landing > 24h away) and include the
+// seat price.
+function flightOriginMatches(f, needle) {
     if (!needle) return true;
     const n = needle.toLowerCase();
-    return ["city", "state", "country", "airport", "receiver", "to", "departingTo", "landingAt"].some((k) =>
+    return ["comingFrom", "origin", "from", "sender", "city", "state", "country", "airport"].some((k) =>
         String(f[k] ?? "")
             .toLowerCase()
             .includes(n)
     );
 }
 
-function flightDepartDate(f) {
-    const d = f.departFromSender || f.departAtSender || f.time || "";
-    return String(d).slice(0, 10); // YYYY-MM-DD
+function flightArriveDate(f) {
+    const ms = f.arriveAtReceiver;
+    if (!ms) return "";
+    return new Date(ms).toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
 router.get("/search", async (req, res, next) => {
     try {
-        const destination = (req.query.destination || "").trim();
+        const origin = (req.query.origin || req.query.destination || "").trim();
         const date = (req.query.date || "").trim();
 
         let flights = [];
         try {
             // `sort=desc` returns the newest (currently scheduled/bookable)
             // flights. Without it the API returns the oldest flights, which are
-            // all already past/unbookable — matching the departures list above.
+            // all already past/unbookable.
             const upstream = await api.get(
-                "/v1/flights/search?type=departure&sort=desc"
+                "/v1/flights/search?type=arrival&sort=desc"
             );
             flights = upstream.flights || upstream || [];
         } catch (e) {
@@ -163,10 +164,12 @@ router.get("/search", async (req, res, next) => {
 
         const cutoff = Date.now() + 24 * 3600 * 1000;
         const results = flights.filter((f) => {
+            // Only flights landing at our airport are bookable.
+            if (f.type !== "arrival") return false;
             if (!f.bookable || f.status !== "scheduled") return false;
             if (new Date(f.arriveAtReceiver || 0).getTime() <= cutoff) return false;
-            if (!flightDestinationMatches(f, destination)) return false;
-            if (date && flightDepartDate(f) !== date) return false;
+            if (!flightOriginMatches(f, origin)) return false;
+            if (date && flightArriveDate(f) !== date) return false;
             return true;
         });
 
@@ -184,19 +187,19 @@ router.get("/search", async (req, res, next) => {
         res.json({
             total: results.length,
             items: results.map((f) => {
-                const destination = f.departingTo || f.landingAt || f.city || f.airport || "";
+                const origin = f.comingFrom || f.sender || f.city || f.airport || "";
                 return {
                     flight_id: f.flight_id || f.id,
                     flightNumber: f.flightNumber,
                     airline: f.airline,
-                    city: destination,
-                    state: f.state,
-                    country: f.country,
-                    airport: destination,
-                    receiver: f.receiver,
+                    origin,
+                    from: origin,
+                    city: origin,
+                    airport: origin,
                     departFromSender: f.departFromSender,
                     departTime: fmtTime(f.departFromSender),
                     arriveAtReceiver: f.arriveAtReceiver,
+                    arriveTime: fmtTime(f.arriveAtReceiver),
                     gate: f.gate,
                     status: f.status,
                     seatPrice: f.seat_price ?? f.seatPrice ?? 0,
@@ -236,7 +239,7 @@ router.get("/:id/seats", (req, res) => {
     const locks = db
         .prepare("SELECT seat, session_id FROM seat_locks WHERE flight_id=?")
         .all(flightId);
-    const mySessionId = req.session?.id;
+    const mySessionId = req.bookingSessionId;
     res.json({
         seats: SEATS.map((s) => {
             if (taken.has(s)) return { seat: s, state: "taken" };
@@ -252,7 +255,9 @@ router.get("/:id/seats", (req, res) => {
 });
 
 // ── POST /api/flights/:id/seats/lock ────────────────────────────────────────
-router.post("/:id/seats/lock", requireAuth, (req, res) => {
+// Open to guests: unauthenticated users are allowed to book, so seat-lock
+// ownership is keyed on the anonymous booking session id.
+router.post("/:id/seats/lock", (req, res) => {
     const { seat } = req.body;
     if (!SEATS.includes(seat)) {
         return res.status(400).json({ error: "Invalid seat" });
@@ -260,12 +265,12 @@ router.post("/:id/seats/lock", requireAuth, (req, res) => {
     const expires = new Date(Date.now() + LOCK_MIN * 60_000).toISOString();
     db.prepare(
         "DELETE FROM seat_locks WHERE flight_id=? AND session_id=?"
-    ).run(req.params.id, req.session.id);
+    ).run(req.params.id, req.bookingSessionId);
     try {
         db.prepare(
             `INSERT INTO seat_locks (flight_id, seat, session_id, locked_until)
        VALUES (?, ?, ?, ?)`
-        ).run(req.params.id, seat, req.session.id, expires);
+        ).run(req.params.id, seat, req.bookingSessionId, expires);
         res.json({ ok: true, lockedUntil: expires });
     } catch {
         res.status(409).json({ error: "Seat already locked" });
@@ -273,10 +278,10 @@ router.post("/:id/seats/lock", requireAuth, (req, res) => {
 });
 
 // ── DELETE /api/flights/:id/seats/lock ──────────────────────────────────────
-router.delete("/:id/seats/lock", requireAuth, (req, res) => {
+router.delete("/:id/seats/lock", (req, res) => {
     db.prepare(
         "DELETE FROM seat_locks WHERE flight_id=? AND session_id=?"
-    ).run(req.params.id, req.session.id);
+    ).run(req.params.id, req.bookingSessionId);
     res.json({ ok: true });
 });
 

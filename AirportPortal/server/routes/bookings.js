@@ -49,6 +49,12 @@ router.post("/", async (req, res, next) => {
         if (!flight.bookable || flight.status !== "scheduled") {
             return res.status(400).json({ error: "Flight not bookable" });
         }
+        // Only flights landing at our airport (arrivals) may be booked.
+        if (flight.type !== "arrival") {
+            return res
+                .status(400)
+                .json({ error: "Only flights landing at this airport can be booked" });
+        }
         const arrives = new Date(flight.arriveAtReceiver);
         if (arrives.getTime() < Date.now() + 24 * 3600 * 1000) {
             return res.status(400).json({ error: "Flight departs within 24h" });
@@ -57,7 +63,7 @@ router.post("/", async (req, res, next) => {
         const lock = db
             .prepare("SELECT * FROM seat_locks WHERE flight_id=? AND seat=?")
             .get(data.flightId, data.seat);
-        if (!lock || lock.session_id !== req.session?.id) {
+        if (!lock || lock.session_id !== req.bookingSessionId) {
             return res.status(409).json({ error: "Seat lock not owned" });
         }
 
