@@ -1,12 +1,15 @@
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { server } from "./msw/server.js";
+import {
+    configureTestDbEnv,
+    setupTestDatabase,
+    teardownTestDatabase,
+} from "../helpers/backend/sqliteTestEnv.mjs";
 
-// Each Vitest worker is a separate process with its own module registry.
-// Using :memory: gives every worker a completely isolated SQLite database
-// so parallel test files can never share or corrupt each other's data.
-// If DB_PATH is already set in the environment (e.g. CI with a real file),
-// that value is respected.
-process.env.DB_PATH = process.env.DB_PATH || ":memory:";
+// Configure an isolated SQLite file per worker under tests/.tmp.
+// This ensures test DB writes can never touch production DB files.
+configureTestDbEnv();
+await setupTestDatabase({ clean: true, withSeed: false });
 
 process.env.NODE_ENV = process.env.NODE_ENV || "test";
 process.env.CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://127.0.0.1:3000";
@@ -15,7 +18,17 @@ process.env.BDPA_BASE_URL = process.env.BDPA_BASE_URL || "http://127.0.0.1:4010"
 process.env.BEARER_TOKEN = process.env.BEARER_TOKEN || "test-bearer-token";
 
 beforeAll(() => {
-    server.listen({ onUnhandledRequest: "error" });
+    server.listen({
+        onUnhandledRequest(req, print) {
+            const url = new URL(req.url);
+            // Supertest drives a local ephemeral HTTP server (127.0.0.1 or localhost).
+            // Those requests are app-internal and should not be treated as missing MSW mocks.
+            if (url.hostname === "127.0.0.1" || url.hostname === "localhost") {
+                return;
+            }
+            print.error();
+        },
+    });
 });
 
 afterEach(() => {
@@ -25,4 +38,8 @@ afterEach(() => {
 
 afterAll(() => {
     server.close();
+});
+
+afterAll(() => {
+    teardownTestDatabase();
 });

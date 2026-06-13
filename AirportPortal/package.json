@@ -14,6 +14,8 @@
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "vitest run --config vitest.config.js --passWithNoTests",
     "test:backend:watch": "vitest --config vitest.config.js --passWithNoTests",
+    "test:backend:seeded": "npm run test:db:setup && vitest run --config vitest.config.js --passWithNoTests",
+    "test:backend:live": "SKIP_LIVE=1 vitest run --config vitest.config.js --passWithNoTests tests/integration/apiClient.live.test.mjs",
     "test:frontend": "vitest run --config vitest.frontend.config.js --passWithNoTests",
     "test:frontend:watch": "vitest --config vitest.frontend.config.js --passWithNoTests",
     "test:coverage": "npm run test:coverage:backend && npm run test:coverage:frontend",
@@ -22,7 +24,10 @@
     "test:e2e": "playwright test --pass-with-no-tests",
     "test:e2e:ui": "playwright test --ui --pass-with-no-tests",
     "test:e2e:install": "playwright install chromium",
-    "test:e2e:server": "mkdir -p tests/.tmp && DB_PATH=tests/.tmp/e2e.sqlite NODE_ENV=test SESSION_COOKIE_SECRET=test-session-secret npm run dev"
+    "test:e2e:server": "mkdir -p tests/.tmp && TEST_DB_PATH=tests/.tmp/e2e.sqlite node tests/db/scripts/setup.mjs && DB_PATH=tests/.tmp/e2e.sqlite NODE_ENV=test SESSION_COOKIE_SECRET=test-session-secret npm run dev",
+    "test:db:setup": "node tests/db/scripts/setup.mjs",
+    "test:db:reset": "node tests/db/scripts/reset.mjs",
+    "test:db:teardown": "node tests/db/scripts/teardown.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -81,6 +86,7 @@
     "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react-swc": "^3.5.0",

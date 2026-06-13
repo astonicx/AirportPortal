@@ -27,7 +27,7 @@ module.exports = defineConfig({
     webServer: {
         command: "npm run test:e2e:server",
         url: process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000",
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: false,
         timeout: 120_000,
     },
 });
