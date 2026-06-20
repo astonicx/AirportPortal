@@ -95,7 +95,7 @@ export default function Layout() {
                 <Outlet />
             </main>
             <footer className="border-t bg-background py-4 text-center text-xs text-muted-foreground">
-                AirportPortal · BDPA 2025
+                AirportPortal · BDPA 2026
             </footer>
         </div>
     );

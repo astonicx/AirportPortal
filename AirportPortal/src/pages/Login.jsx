@@ -9,9 +9,7 @@ export default function Login() {
     const loc = useLocation();
     const from = loc.state?.from?.pathname || "/dashboard";
 
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-    const [disambiguator, setDisambiguator] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [captcha, setCaptcha] = useState("");
     const [expected, setExpected] = useState("");
@@ -28,15 +26,9 @@ export default function Login() {
         }
         setBusy(true);
         try {
-            await login(firstName, lastName, password, disambiguator, rememberMe);
+            await login(email, password, rememberMe);
             navigate(from, { replace: true });
         } catch (err) {
-            if (err.data?.needsDisambiguator) {
-                setError(
-                    "Multiple accounts share this name. Enter your login disambiguator."
-                );
-                return;
-            }
             const remaining = err.data?.attemptsRemaining;
             setError(
                 err.data?.error ||
@@ -53,34 +45,13 @@ export default function Login() {
             <h1 className="text-2xl font-bold">Log in</h1>
             <form onSubmit={submit} className="space-y-3">
                 <label className="block text-sm">
-                    First name
+                    Email
                     <input
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         required
-                        autoComplete="given-name"
-                        className="mt-1 w-full rounded border px-3 py-2"
-                    />
-                </label>
-                <label className="block text-sm">
-                    Last name
-                    <input
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        required
-                        autoComplete="family-name"
-                        className="mt-1 w-full rounded border px-3 py-2"
-                    />
-                </label>
-                <label className="block text-sm">
-                    Disambiguator (only if your name is shared)
-                    <input
-                        type="text"
-                        value={disambiguator}
-                        onChange={(e) => setDisambiguator(e.target.value)}
-                        autoComplete="off"
+                        autoComplete="email"
                         className="mt-1 w-full rounded border px-3 py-2"
                     />
                 </label>

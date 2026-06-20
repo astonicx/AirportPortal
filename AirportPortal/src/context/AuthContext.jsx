@@ -22,12 +22,10 @@ export function AuthProvider({ children }) {
         refresh();
     }, [refresh]);
 
-    const login = async (firstName, lastName, password, disambiguator, rememberMe) => {
+    const login = async (email, password, rememberMe) => {
         await api.post("/api/auth/login", {
-            firstName,
-            lastName,
+            email,
             password,
-            disambiguator: disambiguator || undefined,
             rememberMe,
         });
         await refresh();

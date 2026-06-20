@@ -122,18 +122,10 @@ router.post("/signup", async (req, res, next) => {
 router.post("/login", async (req, res, next) => {
     try {
         const data = loginSchema.parse(req.body);
-        const rows = db
-            .prepare("SELECT * FROM users WHERE first_name=? AND last_name=?")
-            .all(data.firstName, data.lastName);
-        const pick = pickIdentity(rows, data.disambiguator);
-        if (!pick) return res.status(401).json({ error: "Invalid credentials" });
-        if (pick.collision) {
-            return res
-                .status(409)
-                .json({ error: "Name collision", needsDisambiguator: true });
-        }
-
-        const user = pick;
+        const user = db
+            .prepare("SELECT * FROM users WHERE email=?")
+            .get(data.email);
+        if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
         // lockout check
         const lock = db
@@ -205,12 +197,12 @@ const resetTokens = new Map(); // userId -> { token, expires }
 
 router.post("/recover/init", (req, res, next) => {
     try {
-        const { firstName, lastName, dob } = recoverInitSchema.parse(req.body);
+        const { email } = recoverInitSchema.parse(req.body);
         const user = db
             .prepare(
-                "SELECT * FROM users WHERE first_name=? AND last_name=? AND dob=? AND type='customer'"
+                "SELECT * FROM users WHERE email=?"
             )
-            .get(firstName, lastName, dob);
+            .get(email);
         if (!user) return res.status(404).json({ error: "Not found" });
         const qs = db
             .prepare("SELECT id, question FROM security_questions WHERE user_id=?")
@@ -249,8 +241,8 @@ router.post("/recover/answer", async (req, res, next) => {
 
 router.post("/recover/reset", async (req, res, next) => {
     try {
-        const { resetToken, password } = recoverResetSchema.parse(req.body);
-        const policy = passwordPolicy(password);
+        const { resetToken, newPassword } = recoverResetSchema.parse(req.body);
+        const policy = passwordPolicy(newPassword);
         if (!policy.ok) return res.status(400).json({ error: policy.reason });
 
         let userId = null;
@@ -264,7 +256,7 @@ router.post("/recover/reset", async (req, res, next) => {
             return res.status(400).json({ error: "Invalid or expired token" });
         }
 
-        const hash = await hashPassword(password);
+        const hash = await hashPassword(newPassword);
         db.prepare(
             "UPDATE users SET password_hash=?, must_change_password=0 WHERE id=?"
         ).run(hash, userId);

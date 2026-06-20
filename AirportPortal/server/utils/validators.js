@@ -25,17 +25,13 @@ const signupSchema = z.object({
 });
 
 const loginSchema = z.object({
-    firstName: z.string().min(1),
-    lastName: z.string().min(1),
+    email: z.string().email(),
     password: z.string().min(1),
-    disambiguator: z.string().optional(),
     rememberMe: z.boolean().optional(),
 });
 
 const recoverInitSchema = z.object({
-    firstName: z.string(),
-    lastName: z.string(),
-    dob: z.string(),
+    email: z.string().email(),
 });
 const recoverAnswerSchema = z.object({
     userId: z.number(),
@@ -43,7 +39,7 @@ const recoverAnswerSchema = z.object({
 });
 const recoverResetSchema = z.object({
     resetToken: z.string().min(10),
-    password: z.string(),
+    newPassword: z.string(),
 });
 
 module.exports = {
