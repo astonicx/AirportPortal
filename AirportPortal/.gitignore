@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+server/public/
+
+# Environment variables — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Test output & cache
+coverage/
+test-results/
+tests/.tmp/
+
+# Vitest cache
+node_modules/.vite/
+
+# SQLite runtime files
+server/data.sqlite
+server/data.sqlite-shm
+server/data.sqlite-wal

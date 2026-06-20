@@ -1,4 +1,5 @@
 "use strict";
+require("dotenv").config();
 const { defineConfig } = require("vitest/config");
 
 module.exports = defineConfig({
