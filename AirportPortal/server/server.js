@@ -88,7 +88,13 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 server on http://localhost:${PORT}`);
-});
+// Export app for testing
+module.exports = app;
+
+// Only listen if this file is run directly (not imported for testing)
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 server on http://localhost:${PORT}`);
+  });
+}
