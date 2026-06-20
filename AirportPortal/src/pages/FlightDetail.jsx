@@ -6,6 +6,7 @@ import Spinner from "@/components/Spinner";
 export default function FlightDetail() {
     const { id } = useParams();
     const [flight, setFlight] = useState(null);
+    const [homeAirport, setHomeAirport] = useState(null);
     const [err, setErr] = useState(null);
 
     useEffect(() => {
@@ -17,11 +18,24 @@ export default function FlightDetail() {
         return () => { cancelled = true; };
     }, [id]);
 
+    useEffect(() => {
+        let cancelled = false;
+        api
+            .get("/api/flights/home-airport")
+            .then((r) => !cancelled && setHomeAirport(r.airport))
+            .catch(() => { });
+        return () => { cancelled = true; };
+    }, []);
+
     if (err) return <p className="text-destructive">{err.message}</p>;
     if (!flight) return <Spinner />;
 
+    // Only flights landing at our airport are bookable. The upstream `type`
+    // field is unreliable, so compare landingAt to our home airport.
+    const landsHere = !homeAirport || flight.landingAt === homeAirport;
     const canBook =
         flight.bookable && flight.status === "scheduled" &&
+        landsHere &&
         new Date(flight.arriveAtReceiver || 0).getTime() > Date.now() + 24 * 3600_000;
 
     return (

@@ -50,7 +50,7 @@ export default function App() {
                     <Route path="ticket-lookup" element={<TicketLookup />} />
                     <Route path="tickets/:code" element={<Ticket />} />
 
-                    <Route element={<RequireAuth><BookingShell /></RequireAuth>}>
+                    <Route element={<BookingShell />}>
                         <Route path="book" element={<BookingSearch />} />
                         <Route path="book/:id/passenger" element={<Passenger />} />
                         <Route path="book/:id/seat" element={<SeatMap />} />

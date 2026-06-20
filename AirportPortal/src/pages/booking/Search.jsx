@@ -5,9 +5,10 @@ import Spinner from "@/components/Spinner";
 
 export default function BookingSearch() {
     const navigate = useNavigate();
-    const [destination, setDestination] = useState("");
+    const [origin, setOrigin] = useState("");
     const [date, setDate] = useState("");
     const [results, setResults] = useState(null);
+    const [homeAirport, setHomeAirport] = useState(null);
     const [err, setErr] = useState(null);
     const [busy, setBusy] = useState(false);
 
@@ -15,7 +16,7 @@ export default function BookingSearch() {
         setErr(null);
         setBusy(true);
         try {
-            const qs = new URLSearchParams({ destination: dest, date: dt }).toString();
+            const qs = new URLSearchParams({ origin: dest, date: dt }).toString();
             const r = await api.get(`/api/flights/search?${qs}`);
             setResults(r.items);
         } catch (e) {
@@ -25,31 +26,45 @@ export default function BookingSearch() {
         }
     };
 
-    // Show all currently bookable departures on load, like the Departures list.
+    // Show all currently bookable flights departing our airport on load.
     useEffect(() => {
         runSearch();
     }, []);
 
+    // Resolve which airport guests are booking flights into.
+    useEffect(() => {
+        let cancelled = false;
+        api
+            .get("/api/flights/home-airport")
+            .then((r) => !cancelled && setHomeAirport(r.airport))
+            .catch(() => { });
+        return () => { cancelled = true; };
+    }, []);
+
     const search = async (e) => {
         e.preventDefault();
-        await runSearch(destination, date);
+        await runSearch(origin, date);
     };
 
     return (
         <div className="mx-auto max-w-2xl space-y-4">
             <h1 className="text-xl font-bold">Book a flight</h1>
             <p className="text-sm text-muted-foreground">
-                You depart from our airport. Browse all bookable departures below, or
-                filter by where you want to arrive and when.
+                You can only book flights departing from{" "}
+                <span className="font-semibold text-foreground">
+                    {homeAirport ? `${homeAirport} (our airport)` : "our airport"}
+                </span>
+                . Browse all bookable departures below, or filter by destination and
+                departure date.
             </p>
             <form onSubmit={search} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <label className="block text-sm sm:col-span-2">
                     Destination (city, state, country, or airport)
                     <input
                         type="text"
-                        value={destination}
-                        onChange={(e) => setDestination(e.target.value)}
-                        placeholder="e.g. Chicago (optional)"
+                        value={origin}
+                        onChange={(e) => setOrigin(e.target.value)}
+                        placeholder="e.g. Cleveland (optional)"
                         className="mt-1 w-full rounded border px-3 py-2"
                     />
                 </label>
@@ -80,6 +95,7 @@ export default function BookingSearch() {
                             <tr>
                                 <th className="px-3 py-2 text-left">Flight</th>
                                 <th className="px-3 py-2 text-left">Airline</th>
+                                <th className="px-3 py-2 text-left">From</th>
                                 <th className="px-3 py-2 text-left">To</th>
                                 <th className="px-3 py-2 text-left">Departs</th>
                                 <th className="px-3 py-2 text-left">Price</th>
@@ -91,8 +107,9 @@ export default function BookingSearch() {
                                 <tr key={f.flight_id} className="border-t">
                                     <td className="px-3 py-2">{f.flightNumber}</td>
                                     <td className="px-3 py-2">{f.airline}</td>
-                                    <td className="px-3 py-2">{f.city || f.airport || f.receiver}</td>
-                                    <td className="px-3 py-2">{f.departTime || f.departFromSender}</td>
+                                    <td className="px-3 py-2 font-medium">{f.from || homeAirport || "\u2014"}</td>
+                                    <td className="px-3 py-2">{f.to || f.destination || "\u2014"}</td>
+                                    <td className="px-3 py-2">{f.departTime || f.departFromReceiver}</td>
                                     <td className="px-3 py-2">${Number(f.seatPrice).toFixed(2)}</td>
                                     <td className="px-3 py-2">
                                         <button
@@ -106,7 +123,7 @@ export default function BookingSearch() {
                             ))}
                             {!results.length && (
                                 <tr>
-                                    <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                                    <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
                                         No bookable flights match your search.
                                     </td>
                                 </tr>
