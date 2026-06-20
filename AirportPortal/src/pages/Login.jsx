@@ -26,7 +26,7 @@ export default function Login() {
         }
         setBusy(true);
         try {
-            await login(email, password, captcha, rememberMe);
+            await login(email, password, rememberMe);
             navigate(from, { replace: true });
         } catch (err) {
             const remaining = err.data?.attemptsRemaining;

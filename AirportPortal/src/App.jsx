@@ -15,6 +15,7 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import CompleteProfile from "@/pages/CompleteProfile";
 
+import BookingSearch from "@/pages/booking/Search";
 import Passenger from "@/pages/booking/Passenger";
 import SeatMap from "@/pages/booking/SeatMap";
 import Bags from "@/pages/booking/Bags";
@@ -49,7 +50,8 @@ export default function App() {
                     <Route path="ticket-lookup" element={<TicketLookup />} />
                     <Route path="tickets/:code" element={<Ticket />} />
 
-                    <Route element={<RequireAuth><BookingShell /></RequireAuth>}>
+                    <Route element={<BookingShell />}>
+                        <Route path="book" element={<BookingSearch />} />
                         <Route path="book/:id/passenger" element={<Passenger />} />
                         <Route path="book/:id/seat" element={<SeatMap />} />
                         <Route path="book/:id/bags" element={<Bags />} />

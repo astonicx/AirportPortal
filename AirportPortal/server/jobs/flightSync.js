@@ -10,7 +10,11 @@ let sweepTimer = null;
 async function tick() {
     try {
         for (const type of ["arrival", "departure"]) {
-            const data = await api.get(`/v1/flights/search?type=${type}`);
+            // `sort=desc` returns the newest (currently scheduled) flights;
+            // the default order returns the oldest, already-past flights.
+            const data = await api.get(
+                `/v1/flights/search?type=${type}&sort=desc`
+            );
             const flights = data.flights || data || [];
             for (const f of flights) putCached(f.flight_id || f.id, f);
         }

@@ -23,6 +23,7 @@ function Nav() {
                 </Link>
                 <nav className="ml-4 flex flex-wrap gap-1 text-sm">
                     <NavLink to="/flights" className={link}>Flights</NavLink>
+                    <NavLink to="/book" className={link}>Book</NavLink>
                     <NavLink to="/ticket-lookup" className={link}>Lookup</NavLink>
                     {user && <NavLink to="/dashboard" className={link}>Dashboard</NavLink>}
                     {user && <NavLink to="/settings" className={link}>Settings</NavLink>}
@@ -94,7 +95,7 @@ export default function Layout() {
                 <Outlet />
             </main>
             <footer className="border-t bg-background py-4 text-center text-xs text-muted-foreground">
-                AirportPortal · BDPA 2025
+                AirportPortal · BDPA 2026
             </footer>
         </div>
     );
