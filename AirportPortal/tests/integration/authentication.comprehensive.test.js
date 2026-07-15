@@ -27,14 +27,14 @@ describe("authentication + authorization comprehensive coverage", () => {
             await createUser({
                 first_name: "Valid",
                 last_name: "Login",
+                email: "valid.login@test.local",
                 password: "StrongPassword123",
                 must_change_password: 0,
                 must_complete_profile: 0,
             });
 
             const loginRes = await request(app).post("/api/auth/login").send({
-                firstName: "Valid",
-                lastName: "Login",
+                email: "valid.login@test.local",
                 password: "StrongPassword123",
                 rememberMe: false,
             });
@@ -58,12 +58,12 @@ describe("authentication + authorization comprehensive coverage", () => {
             await createUser({
                 first_name: "Invalid",
                 last_name: "Login",
+                email: "invalid.login@test.local",
                 password: "StrongPassword123",
             });
 
             const res = await request(app).post("/api/auth/login").send({
-                firstName: "Invalid",
-                lastName: "Login",
+                email: "invalid.login@test.local",
                 password: "WrongPassword123",
             });
 

@@ -11,10 +11,7 @@
  *   - Invalid formats/types for key fields
  *   - Edge cases and optional field behaviour
  *
- * NOTE: A critical contract mismatch exists between the frontend Login page
- * (which submits { email, password }) and loginSchema (which expects
- * { firstName, lastName, password }). This is documented here so the fix
- * is visible to the team – see gap analysis report for full context.
+ * NOTE: These tests must mirror the current backend contract exactly.
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -64,15 +61,12 @@ const BASE_SIGNUP = {
 };
 
 const BASE_LOGIN = {
-    firstName: "Jane",
-    lastName: "Doe",
+    email: "jane@example.com",
     password: "correctpassword",
 };
 
 const BASE_RECOVER_INIT = {
-    firstName: "Jane",
-    lastName: "Doe",
-    dob: "1990-05-15",
+    email: "jane@example.com",
 };
 
 const BASE_RECOVER_ANSWER = {
@@ -82,7 +76,7 @@ const BASE_RECOVER_ANSWER = {
 
 const BASE_RECOVER_RESET = {
     resetToken: "a".repeat(10), // minimum 10 chars
-    password: "newpassword",
+    newPassword: "newpassword",
 };
 
 // ── signupSchema ──────────────────────────────────────────────────────────────
@@ -205,11 +199,6 @@ describe("signupSchema – invalid formats", () => {
 
 // ── loginSchema ───────────────────────────────────────────────────────────────
 //
-// CONTRACT BUG (documented, not fixed here):
-// The frontend Login page POSTs { email, password, captcha, rememberMe }
-// but loginSchema expects { firstName, lastName, password, [disambiguator], [rememberMe] }.
-// Login is currently broken end-to-end because of this mismatch.
-
 describe("loginSchema – happy path", () => {
     it("accepts minimal required fields", () => {
         expect(valid(loginSchema, BASE_LOGIN)).toBe(true);
@@ -234,13 +223,8 @@ describe("loginSchema – happy path", () => {
 });
 
 describe("loginSchema – missing required fields", () => {
-    it("rejects missing firstName", () => {
-        const { firstName: _f, ...rest } = BASE_LOGIN;
-        expect(valid(loginSchema, rest)).toBe(false);
-    });
-
-    it("rejects missing lastName", () => {
-        const { lastName: _l, ...rest } = BASE_LOGIN;
+    it("rejects missing email", () => {
+        const { email: _e, ...rest } = BASE_LOGIN;
         expect(valid(loginSchema, rest)).toBe(false);
     });
 
@@ -251,12 +235,8 @@ describe("loginSchema – missing required fields", () => {
 });
 
 describe("loginSchema – invalid values", () => {
-    it("rejects empty firstName", () => {
-        expect(valid(loginSchema, { ...BASE_LOGIN, firstName: "" })).toBe(false);
-    });
-
-    it("rejects empty lastName", () => {
-        expect(valid(loginSchema, { ...BASE_LOGIN, lastName: "" })).toBe(false);
+    it("rejects invalid email", () => {
+        expect(valid(loginSchema, { ...BASE_LOGIN, email: "not-an-email" })).toBe(false);
     });
 
     it("rejects empty password", () => {
@@ -271,24 +251,18 @@ describe("loginSchema – invalid values", () => {
 
 // ── recoverInitSchema ─────────────────────────────────────────────────────────
 //
-// CONTRACT BUG (documented, not fixed here):
-// The frontend Recover page POSTs { email } for step 1.
-// recoverInitSchema expects { firstName, lastName, dob }.
-// Password recovery step 1 is currently broken end-to-end.
-
 describe("recoverInitSchema – happy path", () => {
     it("accepts a complete payload", () => {
         expect(valid(recoverInitSchema, BASE_RECOVER_INIT)).toBe(true);
     });
 
-    it("accepts empty strings (schema has no min constraints)", () => {
-        // z.string() without .min(1) allows empty strings
-        expect(valid(recoverInitSchema, { firstName: "", lastName: "", dob: "" })).toBe(true);
+    it("rejects empty string email", () => {
+        expect(valid(recoverInitSchema, { email: "" })).toBe(false);
     });
 });
 
 describe("recoverInitSchema – missing fields", () => {
-    ["firstName", "lastName", "dob"].forEach((field) => {
+    ["email"].forEach((field) => {
         it(`rejects when ${field} is missing`, () => {
             const { [field]: _omitted, ...rest } = BASE_RECOVER_INIT;
             expect(valid(recoverInitSchema, rest)).toBe(false);
@@ -297,9 +271,9 @@ describe("recoverInitSchema – missing fields", () => {
 });
 
 describe("recoverInitSchema – invalid types", () => {
-    it("rejects when firstName is a number", () => {
+    it("rejects when email is a number", () => {
         // @ts-expect-error intentional wrong type
-        expect(valid(recoverInitSchema, { ...BASE_RECOVER_INIT, firstName: 42 })).toBe(false);
+        expect(valid(recoverInitSchema, { ...BASE_RECOVER_INIT, email: 42 })).toBe(false);
     });
 });
 
@@ -345,44 +319,39 @@ describe("recoverAnswerSchema – validation failures", () => {
 
 // ── recoverResetSchema ────────────────────────────────────────────────────────
 //
-// CONTRACT BUG (documented, not fixed here):
-// The frontend Recover page POSTs { resetToken, newPassword }.
-// recoverResetSchema expects { resetToken, password }.
-// The field name mismatch means the reset step is broken end-to-end.
-
 describe("recoverResetSchema – happy path", () => {
     it("accepts a valid reset token and password", () => {
         expect(valid(recoverResetSchema, BASE_RECOVER_RESET)).toBe(true);
     });
 
     it("accepts a longer token", () => {
-        expect(valid(recoverResetSchema, { resetToken: "a".repeat(48), password: "newpass" })).toBe(true);
+        expect(valid(recoverResetSchema, { resetToken: "a".repeat(48), newPassword: "newpass" })).toBe(true);
     });
 });
 
 describe("recoverResetSchema – validation failures", () => {
     it("rejects resetToken shorter than 10 characters", () => {
-        expect(valid(recoverResetSchema, { resetToken: "short", password: "pass" })).toBe(false);
+        expect(valid(recoverResetSchema, { resetToken: "short", newPassword: "pass" })).toBe(false);
     });
 
     it("rejects exactly 9 character token", () => {
-        expect(valid(recoverResetSchema, { resetToken: "a".repeat(9), password: "pass" })).toBe(false);
+        expect(valid(recoverResetSchema, { resetToken: "a".repeat(9), newPassword: "pass" })).toBe(false);
     });
 
     it("accepts exactly 10 character token (boundary)", () => {
-        expect(valid(recoverResetSchema, { resetToken: "a".repeat(10), password: "pass" })).toBe(true);
+        expect(valid(recoverResetSchema, { resetToken: "a".repeat(10), newPassword: "pass" })).toBe(true);
     });
 
     it("rejects missing resetToken", () => {
-        expect(valid(recoverResetSchema, { password: "newpassword" })).toBe(false);
+        expect(valid(recoverResetSchema, { newPassword: "newpassword" })).toBe(false);
     });
 
-    it("rejects missing password", () => {
+    it("rejects missing newPassword", () => {
         expect(valid(recoverResetSchema, { resetToken: "a".repeat(10) })).toBe(false);
     });
 
     it("rejects non-string resetToken", () => {
         // @ts-expect-error intentional wrong type
-        expect(valid(recoverResetSchema, { resetToken: 12345678901, password: "pass" })).toBe(false);
+        expect(valid(recoverResetSchema, { resetToken: 12345678901, newPassword: "pass" })).toBe(false);
     });
 });

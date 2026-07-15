@@ -26,8 +26,10 @@ function bookableFlight(overrides = {}) {
     return {
         flight_id: "F-1",
         id: "F-1",
+        type: "departure",
         flightNumber: "UA100",
         airline: "United",
+        landingAt: "MWK",
         airport: "ORD",
         city: "Chicago",
         time: "10:00",
@@ -93,9 +95,10 @@ describe("routes: flights/bookings/tickets/no-fly", () => {
         expect(res.body.seats[0]).toHaveProperty("state");
     });
 
-    it("POST /api/flights/:id/seats/lock unauthorized returns 401", async () => {
+    it("POST /api/flights/:id/seats/lock guest user can lock seat", async () => {
         const res = await request(app).post("/api/flights/F1/seats/lock").send({ seat: "1A" });
-        expect(res.status).toBe(401);
+        expect(res.status).toBe(200);
+        expect(res.body.ok).toBe(true);
     });
 
     it("POST /api/flights/:id/seats/lock invalid seat returns 400", async () => {
@@ -115,9 +118,10 @@ describe("routes: flights/bookings/tickets/no-fly", () => {
         expect(typeof res.body.lockedUntil).toBe("string");
     });
 
-    it("DELETE /api/flights/:id/seats/lock unauthorized returns 401", async () => {
+    it("DELETE /api/flights/:id/seats/lock guest user can clear lock", async () => {
         const res = await request(app).delete("/api/flights/F1/seats/lock");
-        expect(res.status).toBe(401);
+        expect(res.status).toBe(200);
+        expect(res.body.ok).toBe(true);
     });
 
     it("DELETE /api/flights/:id/seats/lock authorized returns 200", async () => {

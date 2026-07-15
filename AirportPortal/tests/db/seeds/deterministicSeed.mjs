@@ -75,6 +75,7 @@ export async function seedDeterministicData(db) {
                 bookable: true,
                 seat_price: 250,
                 airline: "SeedAir",
+                landingAt: "MWK",
                 departFromSender: "2030-01-01T12:00:00.000Z",
                 arriveAtReceiver: "2030-01-01T16:00:00.000Z",
             })
