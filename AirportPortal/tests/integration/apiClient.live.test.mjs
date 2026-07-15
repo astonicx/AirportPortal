@@ -13,15 +13,23 @@
  * These tests do NOT modify the test database and do NOT use mocks.
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { createRequire } from "node:module";
+import { server } from "../setup/msw/server.js";
+import { successHandlers } from "../setup/api-mocks/handlers.mjs";
 
 const require = createRequire(import.meta.url);
 const api = require("../../server/utils/apiClient");
 
 const SKIP_LIVE = process.env.SKIP_LIVE !== "0" || process.env.CI === "true";
+const USE_MOCK_LIVE = process.env.MOCK_LIVE === "1";
 
 describe.skipIf(SKIP_LIVE)("live API smoke tests", () => {
+    beforeEach(() => {
+        // Optional mode to keep this suite deterministic in local/CI runs.
+        if (USE_MOCK_LIVE) server.use(...successHandlers);
+    });
+
     it("can GET /v1/flights/search with type=departure", async () => {
         const response = await api.get("/v1/flights/search?type=departure");
         expect(response).toBeDefined();
@@ -70,4 +78,4 @@ describe.skipIf(SKIP_LIVE)("live API smoke tests", () => {
 });
 
 // Example of how to run live tests:
-// SKIP_LIVE=1 BDPA_BASE_URL=https://actual-api.example.com BEARER_TOKEN=your-token npm run test:backend
+// SKIP_LIVE=0 BDPA_BASE_URL=https://actual-api.example.com BEARER_TOKEN=your-token npm run test:backend:live
