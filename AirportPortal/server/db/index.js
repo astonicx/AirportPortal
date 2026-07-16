@@ -4,9 +4,39 @@ const fs = require("fs");
 const Database = require("better-sqlite3");
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, "..", "data.sqlite");
-const db = new Database(DB_PATH);
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
+
+function openDatabaseWithRecovery(dbPath) {
+    const configure = (instance) => {
+        instance.pragma("journal_mode = WAL");
+        instance.pragma("foreign_keys = ON");
+        return instance;
+    };
+
+    try {
+        return configure(new Database(dbPath));
+    } catch (err) {
+        if (err?.code !== "SQLITE_CORRUPT") throw err;
+
+        const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const backupBase = `${dbPath}.corrupt-${stamp}`;
+        const sidecars = ["", "-wal", "-shm"];
+
+        for (const suffix of sidecars) {
+            const src = `${dbPath}${suffix}`;
+            const dst = `${backupBase}${suffix}`;
+            if (fs.existsSync(src)) {
+                fs.renameSync(src, dst);
+            }
+        }
+
+        console.warn(
+            `SQLite database was corrupt and has been moved to ${backupBase}*; creating a fresh database.`
+        );
+        return configure(new Database(dbPath));
+    }
+}
+
+const db = openDatabaseWithRecovery(DB_PATH);
 
 function runMigrations() {
     db.exec(`CREATE TABLE IF NOT EXISTS _migrations (

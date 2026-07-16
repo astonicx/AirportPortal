@@ -28,6 +28,7 @@ import Review from "@/pages/booking/Review";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminCustomers from "@/pages/admin/AdminCustomers";
+import AdminAttendants from "@/pages/admin/AdminAttendants";
 import AdminTickets from "@/pages/admin/AdminTickets";
 import AdminAdmins from "@/pages/admin/AdminAdmins";
 import AdminAttendants from "@/pages/admin/AdminAttendants";

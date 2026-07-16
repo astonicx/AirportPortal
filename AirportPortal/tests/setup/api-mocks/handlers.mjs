@@ -88,6 +88,19 @@ export const successHandlers = [
         return HttpResponse.json(fixtureFlightList);
     }),
 
+    // /v2/flights/search is the actual path used by the live smoke tests
+    // (departure, arrival, and generic searches).  The handler above only
+    // covers /v2/flights, so requests to /v2/flights/search fell through to
+    // the real network and caused ECONNREFUSED in MOCK_LIVE=1 mode.
+    http.get(`${BASE}/v2/flights/search`, ({ request }) => {
+        const url = new URL(request.url);
+        const flightId = url.searchParams.get("flight_id");
+        if (flightId) {
+            return HttpResponse.json(fixtureFlightSingle);
+        }
+        return HttpResponse.json(fixtureFlightList);
+    }),
+
     http.get(`${BASE}/v2/info/no-fly-list`, () => {
         return HttpResponse.json(fixtureNoFlyList);
     }),
