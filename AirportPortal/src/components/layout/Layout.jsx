@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
+import ThemeToggle from "@/components/ThemeToggle";
 import { toast } from "sonner";
 
 function Nav() {
@@ -23,11 +24,13 @@ function Nav() {
             <div className="h-1 w-full bg-gradient-to-r from-primary via-primary to-accent" />
             <div className="container flex flex-wrap items-center gap-3 py-3">
                 <Link to="/" className="group flex items-center gap-2.5">
-                    <img
-                        src="/images/BDPA_logo.png"
-                        alt="BDPA"
-                        className="h-10 w-auto transition-transform group-hover:scale-105"
-                    />
+                    <span className="flex items-center rounded-lg bg-brand-hero px-2 py-1.5 shadow-sm ring-1 ring-black/5 transition-transform group-hover:scale-105">
+                        <img
+                            src="/images/BDPA_logo.png"
+                            alt="BDPA"
+                            className="h-7 w-auto"
+                        />
+                    </span>
                     <span className="hidden text-lg font-extrabold tracking-tight sm:inline">
                         <span className="brand-gradient">AirportPortal</span>
                     </span>
@@ -46,6 +49,7 @@ function Nav() {
                     )}
                 </nav>
                 <div className="ml-auto flex items-center gap-2 text-sm">
+                    <ThemeToggle />
                     {user ? (
                         <>
                             <span className="hidden text-muted-foreground sm:inline">
@@ -137,11 +141,13 @@ export default function Layout() {
             <footer className="mt-8 border-t border-border/70 bg-card">
                 <div className="container flex flex-col items-center justify-between gap-3 py-6 sm:flex-row">
                     <div className="flex items-center gap-2.5">
-                        <img
-                            src="/images/BDPA_logo.png"
-                            alt="BDPA"
-                            className="h-8 w-auto"
-                        />
+                        <span className="flex items-center rounded-lg bg-brand-hero px-2 py-1.5 shadow-sm ring-1 ring-black/5">
+                            <img
+                                src="/images/BDPA_logo.png"
+                                alt="BDPA"
+                                className="h-6 w-auto"
+                            />
+                        </span>
                         <span className="text-sm font-semibold">AirportPortal</span>
                     </div>
                     <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
