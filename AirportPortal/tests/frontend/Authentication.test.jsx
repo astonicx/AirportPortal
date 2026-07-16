@@ -51,7 +51,7 @@ describe("Frontend Authentication", () => {
         await user.click(screen.getByRole("button", { name: /sign in/i }));
 
         await waitFor(() => {
-            expect(screen.getByRole("heading", { name: /welcome/i })).toBeInTheDocument();
+            expect(screen.getByText(/welcome back/i)).toBeInTheDocument();
         });
         expect(loginCalled).toBe(true);
     });
@@ -109,11 +109,11 @@ describe("Frontend Authentication", () => {
         );
 
         const firstRender = renderWithProviders(<App />, { route: "/dashboard" });
-        await screen.findByRole("heading", { name: /welcome/i });
+        await screen.findByText(/welcome back/i);
         firstRender.unmount();
 
         renderWithProviders(<App />, { route: "/dashboard" });
-        await screen.findByRole("heading", { name: /welcome/i });
+        await screen.findByText(/welcome back/i);
 
         expect(meCalls).toBeGreaterThanOrEqual(2);
     });
@@ -168,7 +168,7 @@ describe("Frontend Authentication", () => {
         renderWithProviders(<App />, { route: "/flights" });
 
         await waitFor(() => {
-            expect(screen.getByRole("link", { name: /^admin$/i })).toBeInTheDocument();
+            expect(screen.getAllByRole("link", { name: /^admin$/i }).length).toBeGreaterThan(0);
         });
     });
 

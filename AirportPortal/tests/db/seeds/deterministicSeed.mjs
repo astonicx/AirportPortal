@@ -11,13 +11,14 @@ export async function seedDeterministicData(db) {
     try {
         const insertUser = db.prepare(
             `INSERT INTO users
-             (id, type, first_name, last_name, email, password_hash, must_complete_profile, must_change_password, auto_logout_minutes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+             (id, type, user_type, first_name, last_name, email, password_hash, must_complete_profile, must_change_password, auto_logout_minutes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         );
 
         for (const user of TEST_USERS) {
             insertUser.run(
                 user.id,
+                user.role,
                 user.role,
                 user.firstName,
                 user.lastName,

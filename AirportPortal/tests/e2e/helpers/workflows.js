@@ -17,7 +17,7 @@ export function authUserFor(role, seededUsers) {
 }
 
 export async function assertCustomerDashboard(page) {
-    await expectHeading(page, /welcome, seed/i);
+    await expect(page.getByText(/welcome back/i)).toBeVisible();
     await expect(page.getByRole("heading", { name: /upcoming/i })).toBeVisible();
     await expect(page.getByText(/SEED01/i)).toBeVisible();
 }
@@ -29,17 +29,17 @@ export async function runCustomerTicketView(page) {
 }
 
 export async function runAdminSearches(page) {
-    await expectHeading(page, /^admin$/i);
+    await expectHeading(page, /control center/i);
     await expect(page.getByText("1d")).toBeVisible();
     await expect(page.getByText("all")).toBeVisible();
 
     await openNavLink(page, /customers/i);
     await fillSearchInput(page, "seed.customer@test.local");
-    await expect(page.getByText(/seed customer/i)).toBeVisible();
+    await expect(page.getByRole("cell", { name: "Seed Customer" })).toBeVisible();
 
     await openNavLink(page, /tickets/i);
     await fillSearchInput(page, "SEED01");
-    await expect(page.getByText(/SEED01/i)).toBeVisible();
+    await expect(page.getByRole("cell", { name: /SEED01/i })).toBeVisible();
 }
 
 export async function runAirportSearch(page) {
@@ -47,9 +47,9 @@ export async function runAirportSearch(page) {
     await expectHeading(page, /flights/i);
 
     await fillSearchInput(page, "NO_MATCH_AIRPORT_12345");
-    await expect(page.getByPlaceholder("Search…")).toHaveValue("NO_MATCH_AIRPORT_12345");
+    await expect(page.getByPlaceholder(/^search/i)).toHaveValue("NO_MATCH_AIRPORT_12345");
 
-    await page.getByRole("combobox").first().selectOption("arrival");
+    await page.getByRole("tab", { name: /arrivals/i }).click();
     await expect(page.getByRole("heading", { name: /flights/i })).toBeVisible();
 }
 

@@ -28,7 +28,7 @@ describe("Signup Page", () => {
 
         it("renders security questions fieldset", () => {
             renderWithProviders(<Signup />);
-            const legend = screen.getByText("Security questions");
+            const legend = screen.getByText(/security questions/i);
             expect(legend).toBeInTheDocument();
         });
 

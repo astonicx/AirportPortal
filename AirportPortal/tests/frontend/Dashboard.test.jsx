@@ -17,7 +17,7 @@ describe("Dashboard Page", () => {
             renderWithProviders(<Dashboard />);
 
             await waitFor(() => {
-                expect(screen.getByText(/welcome, test/i)).toBeInTheDocument();
+                expect(screen.getByText(/welcome back/i)).toBeInTheDocument();
             });
         });
 
@@ -25,7 +25,7 @@ describe("Dashboard Page", () => {
             renderWithProviders(<Dashboard />);
 
             await waitFor(() => {
-                expect(screen.getByText(/welcome, test/i)).toBeInTheDocument();
+                expect(screen.getByRole("heading", { name: "Test" })).toBeInTheDocument();
             });
         });
 
@@ -70,8 +70,7 @@ describe("Dashboard Page", () => {
             renderWithProviders(<Dashboard />);
 
             await waitFor(() => {
-                const noneElements = screen.getAllByText("None.");
-                expect(noneElements.length).toBeGreaterThan(0);
+                expect(screen.getByText(/no upcoming trips/i)).toBeInTheDocument();
             });
         });
 
@@ -109,8 +108,7 @@ describe("Dashboard Page", () => {
             renderWithProviders(<Dashboard />);
 
             await waitFor(() => {
-                const noneElements = screen.getAllByText("None.");
-                expect(noneElements.length).toBeGreaterThan(0);
+                expect(screen.getByText(/no past trips/i)).toBeInTheDocument();
             });
         });
 
@@ -273,8 +271,8 @@ describe("Dashboard Page", () => {
             renderWithProviders(<Dashboard />);
 
             await waitFor(() => {
-                const noneElements = screen.getAllByText("None.");
-                expect(noneElements.length).toBe(2);
+                expect(screen.getByText(/no upcoming trips/i)).toBeInTheDocument();
+                expect(screen.getByText(/no past trips/i)).toBeInTheDocument();
             });
         });
 

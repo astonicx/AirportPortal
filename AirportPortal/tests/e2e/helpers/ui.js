@@ -5,7 +5,7 @@ export async function expectHeading(page, heading) {
 }
 
 export async function fillSearchInput(page, query) {
-    await page.getByPlaceholder("Search…").fill(query);
+    await page.getByPlaceholder(/^search/i).fill(query);
 }
 
 export async function openNavLink(page, label) {

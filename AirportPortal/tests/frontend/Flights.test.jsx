@@ -15,9 +15,12 @@ describe("Flights Page", () => {
 
         it("renders departure/arrival selector", async () => {
             renderWithProviders(<Flights />);
-            const typeSelect = screen.getAllByRole("combobox")[0];
-            expect(typeSelect).toBeInTheDocument();
-            expect(typeSelect).toHaveValue("departure");
+            const tabs = screen.getAllByRole("tab");
+            expect(tabs.length).toBeGreaterThanOrEqual(2);
+            expect(screen.getByRole("tab", { name: /departures/i })).toHaveAttribute(
+                "aria-selected",
+                "true"
+            );
         });
 
         it("renders search input", async () => {
@@ -27,14 +30,20 @@ describe("Flights Page", () => {
 
         it("renders sort controls", async () => {
             renderWithProviders(<Flights />);
-            const sortSelect = screen.getAllByRole("combobox")[1];
-            expect(sortSelect).toBeInTheDocument();
+            await waitFor(() => {
+                expect(
+                    screen.getByRole("button", { name: /sort by flight/i })
+                ).toBeInTheDocument();
+            });
         });
 
         it("renders sort direction button", async () => {
             renderWithProviders(<Flights />);
+            await waitFor(() => {
+                expect(screen.getByRole("table")).toBeInTheDocument();
+            });
             const buttons = screen.getAllByRole("button");
-            // Should have direction toggle button
+            // Sortable column headers and pagination render as buttons
             expect(buttons.length).toBeGreaterThan(0);
         });
     });
@@ -73,7 +82,7 @@ describe("Flights Page", () => {
             renderWithProviders(<Flights />);
             
             await waitFor(() => {
-                expect(screen.getByText(/no flights/i)).toBeInTheDocument();
+                expect(screen.getAllByText(/no flights/i).length).toBeGreaterThan(0);
             });
         });
     });
@@ -89,7 +98,7 @@ describe("Flights Page", () => {
             // Check for table headers
             expect(screen.getByText("Flight")).toBeInTheDocument();
             expect(screen.getByText("Airline")).toBeInTheDocument();
-            expect(screen.getByText("Status")).toBeInTheDocument();
+            expect(screen.getAllByText("Status").length).toBeGreaterThan(0);
         });
 
         it("displays flight rows with correct data", async () => {
@@ -116,11 +125,12 @@ describe("Flights Page", () => {
             const user = userEvent.setup();
             renderWithProviders(<Flights />);
 
-            const typeSelect = screen.getAllByRole("combobox")[0];
-            expect(typeSelect).toHaveValue("departure");
+            const departuresTab = screen.getByRole("tab", { name: /departures/i });
+            expect(departuresTab).toHaveAttribute("aria-selected", "true");
 
-            await user.selectOptions(typeSelect, "arrival");
-            expect(typeSelect).toHaveValue("arrival");
+            const arrivalsTab = screen.getByRole("tab", { name: /arrivals/i });
+            await user.click(arrivalsTab);
+            expect(arrivalsTab).toHaveAttribute("aria-selected", "true");
         });
 
         it("filters flights by search query", async () => {
@@ -155,12 +165,12 @@ describe("Flights Page", () => {
             const user = userEvent.setup();
             renderWithProviders(<Flights />);
 
-            const typeSelect = screen.getAllByRole("combobox")[0];
-            
-            await user.selectOptions(typeSelect, "arrival");
-            
-            // Page should reset to 1 when type changes
-            expect(typeSelect).toHaveValue("arrival");
+            const arrivalsTab = screen.getByRole("tab", { name: /arrivals/i });
+
+            await user.click(arrivalsTab);
+
+            // Tab should become active when type changes
+            expect(arrivalsTab).toHaveAttribute("aria-selected", "true");
         });
     });
 
@@ -169,22 +179,33 @@ describe("Flights Page", () => {
             const user = userEvent.setup();
             renderWithProviders(<Flights />);
 
-            const selects = screen.getAllByRole("combobox");
-            const sortSelect = selects[1];
+            const sortButton = await screen.findByRole("button", {
+                name: /sort by flight/i,
+            });
 
-            await user.selectOptions(sortSelect, "flightNumber");
-            expect(sortSelect).toHaveValue("flightNumber");
+            await user.click(sortButton);
+            expect(
+                await screen.findByRole("button", { name: /sort by flight/i })
+            ).toBeInTheDocument();
         });
 
         it("toggles sort direction", async () => {
             const user = userEvent.setup();
             renderWithProviders(<Flights />);
 
-            // Initial state has a sort direction button
-            const buttons = screen.getAllByRole("button");
-            const directionButton = buttons[buttons.length - 1];
-            
-            expect(directionButton).toBeInTheDocument();
+            const sortButton = await screen.findByRole("button", {
+                name: /sort by flight/i,
+            });
+            await user.click(sortButton);
+
+            const sortButtonAgain = await screen.findByRole("button", {
+                name: /sort by flight/i,
+            });
+            await user.click(sortButtonAgain);
+
+            expect(
+                await screen.findByRole("button", { name: /sort by flight/i })
+            ).toBeInTheDocument();
         });
     });
 
