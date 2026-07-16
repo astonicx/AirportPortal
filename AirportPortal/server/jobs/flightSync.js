@@ -13,7 +13,7 @@ async function tick() {
             // `sort=desc` returns the newest (currently scheduled) flights;
             // the default order returns the oldest, already-past flights.
             const data = await api.get(
-                `/v2/flights/search?type=${type}&sort=desc`
+                `/v2/flights?type=${type}&sort=desc`
             );
             const flights = data.flights || data || [];
             for (const f of flights) putCached(f.flight_id || f.id, f);

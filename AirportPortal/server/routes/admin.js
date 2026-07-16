@@ -247,6 +247,25 @@ router.delete("/customers/:id", (req, res) => {
     res.json({ ok: true });
 });
 
+// List attendant accounts with their assigned airline. Visible to admin+root
+// so operators can see every account created, not just customers.
+router.get("/attendants", (req, res) => {
+    const q = `%${(req.query.q || "").toLowerCase()}%`;
+    const rows = db
+        .prepare(
+            `SELECT u.id, u.first_name, u.last_name, u.email, u.is_banned, u.banned_reason,
+                    aa.airline, aa.assigned_at
+             FROM users u
+             LEFT JOIN attendant_assignments aa ON aa.attendant_id = u.id
+             WHERE u.type = 'attendant'
+               AND (lower(u.email) LIKE ? OR lower(u.first_name) LIKE ?
+                    OR lower(u.last_name) LIKE ? OR lower(COALESCE(aa.airline,'')) LIKE ?)
+             ORDER BY u.id`
+        )
+        .all(q, q, q, q);
+    res.json(rows);
+});
+
 router.post("/attendants", async (req, res, next) => {
     try {
         if (!requireRootUser(req, res)) return;

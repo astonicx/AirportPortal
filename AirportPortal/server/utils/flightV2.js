@@ -29,6 +29,22 @@ function seatClasses(flight) {
             ),
         }));
     }
+    // V2 upstream shape: `seats` is an object keyed by class name (e.g.
+    // "economy", "exit row", "first class"), each with { total, priceDollars,
+    // priceFfms }. Normalize class names to snake_case and dollars to cents.
+    if (flight.seats && typeof flight.seats === "object" && !Array.isArray(flight.seats)) {
+        const entries = Object.entries(flight.seats);
+        if (entries.length) {
+            return entries.map(([name, info]) => ({
+                class: String(name).trim().toLowerCase().replace(/\s+/g, "_"),
+                available: Number(info.total ?? info.available ?? 0),
+                priceCents: centsFromMaybe(
+                    Math.round(Number(info.priceDollars ?? info.price_dollars ?? 0) * 100)
+                ),
+                priceFfms: Number(info.priceFfms ?? info.price_ffms ?? 0),
+            }));
+        }
+    }
     // Default: single economy class priced from the flight seat price (dollars).
     const baseCents = Math.round((flight.seat_price ?? flight.seatPrice ?? 0) * 100);
     return [{ class: "economy", available: 90, priceCents: baseCents }];
@@ -80,7 +96,7 @@ function availableExtras(flight) {
 }
 
 function ffmCredit(flight) {
-    return Number(flight.ffm_credit ?? flight.ffmCredit ?? 0);
+    return Number(flight.ffm_credit ?? flight.ffmCredit ?? flight.ffms ?? 0);
 }
 
 // Sums baggage cost (cents) for the given counts using the flight's pricing.

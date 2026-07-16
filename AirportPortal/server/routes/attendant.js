@@ -15,7 +15,7 @@ const ADVANCE_BOOKING_HOURS = 36;
 async function getFlight(id) {
     const c = getCached(id);
     if (c) return c.payload;
-    const r = await api.get(`/v2/flights/search?flight_id=${id}`);
+    const r = await api.get(`/v2/flights?flight_id=${id}`);
     const f = (r.flights || [])[0];
     if (f) putCached(id, f);
     return f;
@@ -197,8 +197,8 @@ router.get("/flights", async (req, res, next) => {
         let flights = [];
         try {
             const [dep, arr] = await Promise.all([
-                api.get(`/v2/flights/search?type=departure&sort=desc`),
-                api.get(`/v2/flights/search?type=arrival&sort=desc`),
+                api.get(`/v2/flights?type=departure&sort=desc`),
+                api.get(`/v2/flights?type=arrival&sort=desc`),
             ]);
             flights = [...(dep.flights || dep || []), ...(arr.flights || arr || [])];
         } catch {

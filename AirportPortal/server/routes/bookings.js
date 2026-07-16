@@ -49,7 +49,7 @@ const schema = z.object({
 async function getFlight(id) {
     const c = getCached(id);
     if (c) return c.payload;
-    const r = await api.get(`/v2/flights/search?flight_id=${id}`);
+    const r = await api.get(`/v2/flights?flight_id=${id}`);
     const f = (r.flights || [])[0];
     if (f) putCached(id, f);
     return f;

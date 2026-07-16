@@ -56,6 +56,11 @@ function normalizeFlight(f) {
             minute: "2-digit",
         })}`;
     }
+    const seatClasses = flightV2.seatClasses(f);
+    // Upstream V2 has no flat `seatPrice`; derive it (dollars) from the base
+    // (economy) seat class so the board/detail/booking show a real price.
+    const baseSeatPrice =
+        f.seatPrice ?? f.seat_price ?? (seatClasses[0]?.priceCents ?? 0) / 100;
     return {
         ...f,
         type,
@@ -78,8 +83,8 @@ function normalizeFlight(f) {
             Date.now() + ADVANCE_BOOKING_HOURS * 3600 * 1000,
         time,
         timeMs: whenMs || 0,
-        seatPrice: f.seatPrice ?? f.seat_price ?? 0,
-        seatClasses: flightV2.seatClasses(f),
+        seatPrice: baseSeatPrice,
+        seatClasses,
         baggageAllowance: flightV2.baggageAllowance(f),
         availableExtras: flightV2.availableExtras(f),
         ffmCredit: flightV2.ffmCredit(f),
@@ -117,7 +122,7 @@ router.get("/", async (req, res, next) => {
             // Without it the API returns the oldest flights, which are all
             // already "past"/"cancelled".
             const upstream = await api.get(
-                `/v2/flights/search?type=${type}&sort=desc`
+                `/v2/flights?type=${type}&sort=desc`
             );
             flights = upstream.flights || upstream || [];
         } catch (e) {
@@ -189,8 +194,8 @@ router.get("/search", async (req, res, next) => {
             // home airport only. `sort=desc` returns the newest (currently
             // scheduled/bookable) flights.
             const [arr, dep] = await Promise.all([
-                api.get("/v2/flights/search?type=arrival&sort=desc"),
-                api.get("/v2/flights/search?type=departure&sort=desc"),
+                api.get("/v2/flights?type=arrival&sort=desc"),
+                api.get("/v2/flights?type=departure&sort=desc"),
             ]);
             const merged = [
                 ...(arr.flights || arr || []),
@@ -236,6 +241,9 @@ router.get("/search", async (req, res, next) => {
             items: results.map((f) => {
                 // These flights depart FROM our airport (landingAt) TO departingTo.
                 const destination = f.departingTo || "";
+                const seatClasses = flightV2.seatClasses(f);
+                const seatPrice =
+                    f.seat_price ?? f.seatPrice ?? (seatClasses[0]?.priceCents ?? 0) / 100;
                 return {
                     flight_id: f.flight_id || f.id,
                     flightNumber: f.flightNumber,
@@ -248,7 +256,7 @@ router.get("/search", async (req, res, next) => {
                     arriveAtReceiver: f.arriveAtReceiver,
                     gate: f.gate,
                     status: f.status,
-                    seatPrice: f.seat_price ?? f.seatPrice ?? 0,
+                    seatPrice,
                 };
             }),
         });
@@ -294,7 +302,7 @@ router.get("/home-airport", async (req, res, next) => {
         }
         let flights = [];
         try {
-            const upstream = await api.get("/v2/flights/search?type=arrival&sort=desc");
+            const upstream = await api.get("/v2/flights?type=arrival&sort=desc");
             flights = upstream.flights || upstream || [];
         } catch {
             flights = db
@@ -315,7 +323,7 @@ router.get("/:id", async (req, res, next) => {
     try {
         const cached = getCached(req.params.id);
         if (cached) return res.json(normalizeFlight(cached.payload));
-        const data = await api.get(`/v2/flights/search?flight_id=${req.params.id}`);
+        const data = await api.get(`/v2/flights?flight_id=${req.params.id}`);
         const flight = (data.flights || [])[0];
         if (!flight) return res.status(404).json({ error: "Flight not found" });
         putCached(req.params.id, flight);

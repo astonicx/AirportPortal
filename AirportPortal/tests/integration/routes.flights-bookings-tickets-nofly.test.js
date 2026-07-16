@@ -50,7 +50,7 @@ describe("routes: flights/bookings/tickets/no-fly", () => {
 
     it("GET /api/flights returns paginated schema", async () => {
         server.use(
-            http.get(`${BASE}/v2/flights/search`, () => HttpResponse.json({ flights: [bookableFlight()] }))
+            http.get(`${BASE}/v2/flights`, () => HttpResponse.json({ flights: [bookableFlight()] }))
         );
         const res = await request(app).get("/api/flights?type=departure&page=1&pageSize=20");
         expect(res.status).toBe(200);
@@ -68,7 +68,7 @@ describe("routes: flights/bookings/tickets/no-fly", () => {
 
     it("GET /api/flights upstream failure falls back to cache", async () => {
         seedFlightCache("C1", bookableFlight({ id: "C1", flight_id: "C1" }));
-        server.use(http.get(`${BASE}/v2/flights/search`, () => HttpResponse.error()));
+        server.use(http.get(`${BASE}/v2/flights`, () => HttpResponse.error()));
         const res = await request(app).get("/api/flights");
         expect(res.status).toBe(200);
         expect(res.body.total).toBeGreaterThanOrEqual(1);

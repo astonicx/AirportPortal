@@ -24,6 +24,7 @@ export default function AdminLayout() {
                 <nav className="flex flex-wrap gap-1 rounded-xl border border-border/70 bg-card p-1 text-sm shadow-card">
                     <NavLink to="/admin" end className={tabClass}>Dashboard</NavLink>
                     <NavLink to="/admin/customers" className={tabClass}>Customers</NavLink>
+                    <NavLink to="/admin/attendants" className={tabClass}>Attendants</NavLink>
                     <NavLink to="/admin/tickets" className={tabClass}>Tickets</NavLink>
                     {user?.type === "root" && (
                         <NavLink to="/admin/admins" className={tabClass}>Admins</NavLink>
