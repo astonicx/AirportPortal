@@ -174,6 +174,37 @@ describe("Frontend Authentication", () => {
         });
     });
 
+    it("renders the attendants admin route without falling back to not found", async () => {
+        frontendServer.use(
+            http.get("*/api/auth/me", () => {
+                return HttpResponse.json({
+                    id: 2,
+                    email: "admin@example.com",
+                    firstName: "Alex",
+                    lastName: "Admin",
+                    type: "admin",
+                });
+            }),
+            http.get("*/api/admin/stats", () => {
+                return HttpResponse.json({
+                    customers7d: 0,
+                    tickets7d: 0,
+                    tickets24h: 0,
+                    noFlyFlagged7d: 0,
+                });
+            }),
+            http.get("*/api/admin/attendants", () => {
+                return HttpResponse.json([]);
+            })
+        );
+
+        renderWithProviders(<App />, { route: "/admin/attendants" });
+
+        await waitFor(() => {
+            expect(screen.getByRole("heading", { name: /airline attendants/i })).toBeInTheDocument();
+        });
+    });
+
     it("hides admin navigation for customer users", async () => {
         frontendServer.use(
             http.get("*/api/auth/me", () => {
