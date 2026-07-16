@@ -31,7 +31,6 @@ import AdminCustomers from "@/pages/admin/AdminCustomers";
 import AdminAttendants from "@/pages/admin/AdminAttendants";
 import AdminTickets from "@/pages/admin/AdminTickets";
 import AdminAdmins from "@/pages/admin/AdminAdmins";
-import AdminAttendants from "@/pages/admin/AdminAttendants";
 import AttendantDashboard from "@/pages/admin/AttendantDashboard";
 
 function BookingShell() {
