@@ -138,18 +138,20 @@ export default function Layout() {
                 id="main-content"
                 className="flex-1 animate-in-fade py-8"
             >
-                {user ? (
-                    <div className="container flex flex-col gap-6 lg:flex-row lg:items-start">
-                        <UpcomingSidebar />
-                        <div className="min-w-0 flex-1">
-                            <Outlet />
-                        </div>
-                    </div>
-                ) : (
-                    <div className="container">
+                {/*
+                 * Render <Outlet/> in a single, stable position regardless of auth
+                 * state. Rendering it inside two different ternary branches makes
+                 * React remount the whole routed subtree (incl. BookingProvider)
+                 * whenever `user` toggles, wiping in-progress booking step state
+                 * ("Missing booking details"). The sidebar is toggled around a
+                 * fixed Outlet instead.
+                 */}
+                <div className="container flex flex-col gap-6 lg:flex-row lg:items-start">
+                    {user && <UpcomingSidebar />}
+                    <div className="min-w-0 flex-1">
                         <Outlet />
                     </div>
-                )}
+                </div>
             </main>
             <footer className="mt-8 border-t border-border/70 bg-card">
                 <div className="container flex flex-col items-center justify-between gap-3 py-6 sm:flex-row">
