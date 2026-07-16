@@ -5,7 +5,15 @@ export async function expectHeading(page, heading) {
 }
 
 export async function fillSearchInput(page, query) {
-    await page.getByPlaceholder("Search…").fill(query);
+    const searchInput = page
+        .getByRole("searchbox", { name: /search/i })
+        .or(page.getByRole("searchbox"))
+        .or(page.getByPlaceholder(/search/i))
+        .first();
+
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill(query);
+    return searchInput;
 }
 
 export async function openNavLink(page, label) {

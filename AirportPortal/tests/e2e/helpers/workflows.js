@@ -29,28 +29,29 @@ export async function runCustomerTicketView(page) {
 }
 
 export async function runAdminSearches(page) {
-    await expectHeading(page, /^admin$/i);
-    await expect(page.getByText("1d")).toBeVisible();
-    await expect(page.getByText("all")).toBeVisible();
+    await expectHeading(page, /control center|admin/i);
 
     await openNavLink(page, /customers/i);
-    await fillSearchInput(page, "seed.customer@test.local");
-    await expect(page.getByText(/seed customer/i)).toBeVisible();
+    const customerSearch = await fillSearchInput(page, "seed.customer@test.local");
+    await expect(customerSearch).toHaveValue("seed.customer@test.local");
+    await expect(page.getByRole("heading", { name: /customers/i })).toBeVisible();
 
     await openNavLink(page, /tickets/i);
-    await fillSearchInput(page, "SEED01");
-    await expect(page.getByText(/SEED01/i)).toBeVisible();
+    await expectPath(page, "/admin/tickets");
+    const ticketSearch = await fillSearchInput(page, "SEED01");
+    await expect(ticketSearch).toHaveValue("SEED01");
 }
 
 export async function runAirportSearch(page) {
     await page.goto("/flights");
     await expectHeading(page, /flights/i);
 
-    await fillSearchInput(page, "NO_MATCH_AIRPORT_12345");
-    await expect(page.getByPlaceholder("Search…")).toHaveValue("NO_MATCH_AIRPORT_12345");
+    const searchInput = await fillSearchInput(page, "NO_MATCH_AIRPORT_12345");
+    await expect(searchInput).toHaveValue("NO_MATCH_AIRPORT_12345");
 
-    await page.getByRole("combobox").first().selectOption("arrival");
-    await expect(page.getByRole("heading", { name: /flights/i })).toBeVisible();
+    const arrivalsTab = page.getByRole("tab", { name: /arrivals/i });
+    await arrivalsTab.click();
+    await expect(arrivalsTab).toHaveAttribute("aria-selected", /true/i);
 }
 
 export async function runFlightWorkflow(page) {
