@@ -1,0 +1,3 @@
+server/data.sqlite binary merge=ours
+server/data.sqlite-shm binary merge=ours
+server/data.sqlite-wal binary merge=ours
