@@ -30,6 +30,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminCustomers from "@/pages/admin/AdminCustomers";
 import AdminTickets from "@/pages/admin/AdminTickets";
 import AdminAdmins from "@/pages/admin/AdminAdmins";
+import AdminAttendants from "@/pages/admin/AdminAttendants";
 import AttendantDashboard from "@/pages/admin/AttendantDashboard";
 
 function BookingShell() {
@@ -94,6 +95,7 @@ export default function App() {
                     >
                         <Route index element={<AdminDashboard />} />
                         <Route path="customers" element={<AdminCustomers />} />
+                        <Route path="attendants" element={<AdminAttendants />} />
                         <Route path="tickets" element={<AdminTickets />} />
                         <Route path="admins" element={<AdminAdmins />} />
                     </Route>
