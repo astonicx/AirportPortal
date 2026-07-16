@@ -79,7 +79,7 @@ export const fixtureNoFlyList = {
 // ─── Handlers: Success Cases ────────────────────────────────────────────────
 
 export const successHandlers = [
-    http.get(`${BASE}/v2/flights/search`, ({ request }) => {
+    http.get(`${BASE}/v2/flights`, ({ request }) => {
         const url = new URL(request.url);
         const flightId = url.searchParams.get("flight_id");
         if (flightId) {
@@ -105,7 +105,7 @@ export const successHandlers = [
 
 export const errorHandlers = {
     badRequest: [
-        http.get(`${BASE}/v2/flights/search`, () => {
+        http.get(`${BASE}/v2/flights`, () => {
             return HttpResponse.json({ error: "Invalid query parameters" }, { status: 400 });
         }),
         http.get(`${BASE}/v2/info/no-fly-list`, () => {
@@ -113,7 +113,7 @@ export const errorHandlers = {
         }),
     ],
     unauthorized: [
-        http.get(`${BASE}/v2/flights/search`, () => {
+        http.get(`${BASE}/v2/flights`, () => {
             return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
         }),
         http.get(`${BASE}/v2/info/no-fly-list`, () => {
@@ -121,7 +121,7 @@ export const errorHandlers = {
         }),
     ],
     forbidden: [
-        http.get(`${BASE}/v2/flights/search`, () => {
+        http.get(`${BASE}/v2/flights`, () => {
             return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
         }),
         http.get(`${BASE}/v2/info/no-fly-list`, () => {
@@ -129,7 +129,7 @@ export const errorHandlers = {
         }),
     ],
     notFound: [
-        http.get(`${BASE}/v2/flights/search`, () => {
+        http.get(`${BASE}/v2/flights`, () => {
             return HttpResponse.json({ error: "Not found" }, { status: 404 });
         }),
         http.get(`${BASE}/v2/info/no-fly-list`, () => {
@@ -137,7 +137,7 @@ export const errorHandlers = {
         }),
     ],
     rateLimit: [
-        http.get(`${BASE}/v2/flights/search`, () => {
+        http.get(`${BASE}/v2/flights`, () => {
             return HttpResponse.json(
                 { error: "Too many requests" },
                 { status: 429, headers: { "Retry-After": "60" } }
@@ -151,7 +151,7 @@ export const errorHandlers = {
         }),
     ],
     serverError: [
-        http.get(`${BASE}/v2/flights/search`, () => {
+        http.get(`${BASE}/v2/flights`, () => {
             return HttpResponse.json({ error: "Internal server error" }, { status: 500 });
         }),
         http.get(`${BASE}/v2/info/no-fly-list`, () => {
@@ -159,7 +159,7 @@ export const errorHandlers = {
         }),
     ],
     serviceUnavailable: [
-        http.get(`${BASE}/v2/flights/search`, () => {
+        http.get(`${BASE}/v2/flights`, () => {
             return HttpResponse.json({ error: "Service unavailable" }, { status: 503 });
         }),
         http.get(`${BASE}/v2/info/no-fly-list`, () => {
@@ -167,7 +167,7 @@ export const errorHandlers = {
         }),
     ],
     retryableError: [
-        http.get(`${BASE}/v2/flights/search`, () => {
+        http.get(`${BASE}/v2/flights`, () => {
             return HttpResponse.json({ error: "Upstream temporarily unavailable" }, { status: 555 });
         }),
         http.get(`${BASE}/v2/info/no-fly-list`, () => {
@@ -179,7 +179,7 @@ export const errorHandlers = {
 // ─── Handlers: Network Failures ────────────────────────────────────────────
 
 export const networkFailureHandler = [
-    http.get(`${BASE}/v2/flights/search`, () => {
+    http.get(`${BASE}/v2/flights`, () => {
         return HttpResponse.error();
     }),
 ];
@@ -187,7 +187,7 @@ export const networkFailureHandler = [
 // ─── Handlers: Timeout (slow response) ─────────────────────────────────────
 
 export const timeoutHandler = [
-    http.get(`${BASE}/v2/flights/search`, async () => {
+    http.get(`${BASE}/v2/flights`, async () => {
         await new Promise((resolve) => setTimeout(resolve, 20000)); // 20 seconds
         return HttpResponse.json(fixtureFlightList);
     }),
@@ -196,19 +196,19 @@ export const timeoutHandler = [
 // ─── Handlers: Empty/Malformed Payloads ─────────────────────────────────────
 
 export const emptyPayloadHandler = [
-    http.get(`${BASE}/v2/flights/search`, () => {
+    http.get(`${BASE}/v2/flights`, () => {
         return HttpResponse.json(null);
     }),
 ];
 
 export const malformedPayloadHandler = [
-    http.get(`${BASE}/v2/flights/search`, () => {
+    http.get(`${BASE}/v2/flights`, () => {
         return HttpResponse.text("Not JSON {{{", { status: 200 });
     }),
 ];
 
 export const missingFieldsHandler = [
-    http.get(`${BASE}/v2/flights/search`, () => {
+    http.get(`${BASE}/v2/flights`, () => {
         return HttpResponse.json({
             flights: [
                 {

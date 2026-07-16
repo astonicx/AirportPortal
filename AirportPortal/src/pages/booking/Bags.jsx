@@ -1,19 +1,48 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { api } from "@/lib/api";
 import { useBooking } from "@/context/BookingContext";
 
-function feeFor(co, ch) {
-    let total = co === 2 ? 30 : 0;
-    if (ch === 2) total += 50;
-    else if (ch >= 3) total += 50 + 100 * (ch - 2);
-    return total;
+function priceAt(prices = [], count = 0) {
+    if (!count) return 0;
+    const idx = Math.min(count, prices.length - 1);
+    return Number(prices[idx] || prices[prices.length - 1] || 0);
 }
 
 export default function Bags() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { booking, update } = useBooking();
+    const [pricing, setPricing] = useState(booking.baggagePricing || null);
+    const [err, setErr] = useState(null);
     const co = booking.carryOnCount;
     const ch = booking.checkedCount;
+
+    useEffect(() => {
+        let cancelled = false;
+        api
+            .get(`/api/flights/${id}/baggage`)
+            .then((r) => {
+                if (cancelled) return;
+                setPricing(r);
+                update({ baggagePricing: r });
+            })
+            .catch((e) => {
+                if (cancelled) return;
+                setErr(e);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [id, update]);
+
+    const bagFeeCents = useMemo(() => {
+        if (!pricing) return 0;
+        return (
+            priceAt(pricing.carryOnPrices, co) +
+            priceAt(pricing.checkedPrices, ch)
+        );
+    }, [pricing, co, ch]);
 
     return (
         <div className="animate-in-up mx-auto max-w-xl space-y-5">
@@ -38,9 +67,10 @@ export default function Bags() {
                         className="field-input"
                     />
                 </label>
+                {err && <p className="text-sm text-destructive">{err.data?.error || err.message}</p>}
                 <div className="flex items-center justify-between rounded-lg bg-secondary/60 px-4 py-3 text-sm">
                     <span>Bag fees</span>
-                    <span className="font-semibold text-primary">${feeFor(co, ch)}</span>
+                    <span className="font-semibold text-primary">${(bagFeeCents / 100).toFixed(2)}</span>
                 </div>
                 <button
                     onClick={() => navigate(`/book/${id}/payment`)}

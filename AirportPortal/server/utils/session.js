@@ -70,13 +70,17 @@ function destroy(sessionId) {
     db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
 }
 
-const cookieOpts = (expires) => ({
-    httpOnly: true,
-    ...sharedCookieAttrs,
-    signed: false,
-    expires: new Date(expires),
-    path: "/",
-});
+const cookieOpts = (expires) => {
+    const sameSite = resolveSameSite();
+    return {
+        httpOnly: true,
+        sameSite,
+        secure: resolveSecure(sameSite),
+        signed: false,
+        expires: new Date(expires),
+        path: "/",
+    };
+};
 
 module.exports = {
     COOKIE,

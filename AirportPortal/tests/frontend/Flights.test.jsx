@@ -15,9 +15,10 @@ describe("Flights Page", () => {
 
         it("renders departure/arrival selector", async () => {
             renderWithProviders(<Flights />);
-            const typeSelect = screen.getAllByRole("combobox")[0];
-            expect(typeSelect).toBeInTheDocument();
-            expect(typeSelect).toHaveValue("departure");
+            const departuresTab = screen.getByRole("tab", { name: /departures/i });
+            expect(departuresTab).toBeInTheDocument();
+            expect(screen.getByRole("tab", { name: /arrivals/i })).toBeInTheDocument();
+            expect(departuresTab).toHaveAttribute("aria-selected", "true");
         });
 
         it("renders search input", async () => {
@@ -27,15 +28,17 @@ describe("Flights Page", () => {
 
         it("renders sort controls", async () => {
             renderWithProviders(<Flights />);
-            const sortSelect = screen.getAllByRole("combobox")[1];
-            expect(sortSelect).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByRole("button", { name: /sort by flight/i })).toBeInTheDocument();
+            });
         });
 
         it("renders sort direction button", async () => {
             renderWithProviders(<Flights />);
-            const buttons = screen.getAllByRole("button");
-            // Should have direction toggle button
-            expect(buttons.length).toBeGreaterThan(0);
+            await waitFor(() => {
+                // Default sort is by time; its header stays clickable to toggle direction
+                expect(screen.getByRole("button", { name: /sort by time/i })).toBeInTheDocument();
+            });
         });
     });
 
@@ -49,7 +52,7 @@ describe("Flights Page", () => {
 
         it("displays flights table after loading", async () => {
             renderWithProviders(<Flights />);
-            
+
             await waitFor(() => {
                 expect(screen.getByRole("table")).toBeInTheDocument();
             });
@@ -71,9 +74,9 @@ describe("Flights Page", () => {
             );
 
             renderWithProviders(<Flights />);
-            
+
             await waitFor(() => {
-                expect(screen.getByText(/no flights/i)).toBeInTheDocument();
+                expect(screen.getAllByText(/no flights/i).length).toBeGreaterThan(0);
             });
         });
     });
@@ -81,20 +84,20 @@ describe("Flights Page", () => {
     describe("Data Display", () => {
         it("displays flight table with all columns", async () => {
             renderWithProviders(<Flights />);
-            
+
             await waitFor(() => {
                 expect(screen.getByRole("table")).toBeInTheDocument();
             });
 
-            // Check for table headers
-            expect(screen.getByText("Flight")).toBeInTheDocument();
-            expect(screen.getByText("Airline")).toBeInTheDocument();
-            expect(screen.getByText("Status")).toBeInTheDocument();
+            // Check for sortable column headers
+            expect(screen.getByRole("button", { name: /sort by flight/i })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: /sort by airline/i })).toBeInTheDocument();
+            expect(screen.getAllByText("Status").length).toBeGreaterThan(0);
         });
 
         it("displays flight rows with correct data", async () => {
             renderWithProviders(<Flights />);
-            
+
             await waitFor(() => {
                 const cells = screen.getAllByText(/UA100|AA200/);
                 expect(cells.length).toBeGreaterThan(0);
@@ -103,7 +106,7 @@ describe("Flights Page", () => {
 
         it("renders details link for each flight", async () => {
             renderWithProviders(<Flights />);
-            
+
             await waitFor(() => {
                 const links = screen.getAllByRole("link", { name: /details/i });
                 expect(links.length).toBeGreaterThan(0);
@@ -116,11 +119,12 @@ describe("Flights Page", () => {
             const user = userEvent.setup();
             renderWithProviders(<Flights />);
 
-            const typeSelect = screen.getAllByRole("combobox")[0];
-            expect(typeSelect).toHaveValue("departure");
+            const departuresTab = screen.getByRole("tab", { name: /departures/i });
+            expect(departuresTab).toHaveAttribute("aria-selected", "true");
 
-            await user.selectOptions(typeSelect, "arrival");
-            expect(typeSelect).toHaveValue("arrival");
+            const arrivalsTab = screen.getByRole("tab", { name: /arrivals/i });
+            await user.click(arrivalsTab);
+            await waitFor(() => expect(arrivalsTab).toHaveAttribute("aria-selected", "true"));
         });
 
         it("filters flights by search query", async () => {
@@ -155,12 +159,12 @@ describe("Flights Page", () => {
             const user = userEvent.setup();
             renderWithProviders(<Flights />);
 
-            const typeSelect = screen.getAllByRole("combobox")[0];
-            
-            await user.selectOptions(typeSelect, "arrival");
-            
-            // Page should reset to 1 when type changes
-            expect(typeSelect).toHaveValue("arrival");
+            const arrivalsTab = screen.getByRole("tab", { name: /arrivals/i });
+
+            await user.click(arrivalsTab);
+
+            // Switching type activates the arrivals tab (page resets internally)
+            await waitFor(() => expect(arrivalsTab).toHaveAttribute("aria-selected", "true"));
         });
     });
 
@@ -169,29 +173,30 @@ describe("Flights Page", () => {
             const user = userEvent.setup();
             renderWithProviders(<Flights />);
 
-            const selects = screen.getAllByRole("combobox");
-            const sortSelect = selects[1];
+            const flightHeader = await screen.findByRole("button", { name: /sort by flight/i });
+            await user.click(flightHeader);
 
-            await user.selectOptions(sortSelect, "flightNumber");
-            expect(sortSelect).toHaveValue("flightNumber");
+            await waitFor(() =>
+                expect(screen.getByRole("button", { name: /sort by flight/i })).toBeInTheDocument()
+            );
         });
 
         it("toggles sort direction", async () => {
             const user = userEvent.setup();
             renderWithProviders(<Flights />);
 
-            // Initial state has a sort direction button
-            const buttons = screen.getAllByRole("button");
-            const directionButton = buttons[buttons.length - 1];
-            
-            expect(directionButton).toBeInTheDocument();
+            const timeHeader = await screen.findByRole("button", { name: /sort by time/i });
+            await user.click(timeHeader);
+            await user.click(timeHeader);
+
+            expect(timeHeader).toBeInTheDocument();
         });
     });
 
     describe("Pagination", () => {
         it("shows pagination controls", async () => {
             renderWithProviders(<Flights />);
-            
+
             await waitFor(() => {
                 expect(screen.getByText(/page \d+/i)).toBeInTheDocument();
             });
@@ -207,7 +212,7 @@ describe("Flights Page", () => {
 
             const buttons = screen.getAllByRole("button");
             const nextButton = buttons.find(b => b.textContent.includes("Next"));
-            
+
             if (nextButton) {
                 await user.click(nextButton);
                 // Next button click should navigate to next page
@@ -223,7 +228,7 @@ describe("Flights Page", () => {
 
             const buttons = screen.getAllByRole("button");
             const prevButton = buttons.find(b => b.textContent.includes("Prev"));
-            
+
             if (prevButton) {
                 expect(prevButton).toBeDisabled();
             }
@@ -240,7 +245,7 @@ describe("Flights Page", () => {
                     );
                 })
             );
-            
+
             renderWithProviders(<Flights />);
 
             await waitFor(() => {
@@ -250,7 +255,7 @@ describe("Flights Page", () => {
 
         it("shows error for unauthorized access", async () => {
             frontendServer.use(errorHandlers.unauthorized[0]);
-            
+
             renderWithProviders(<Flights />);
 
             // Should show error due to unauthorized access

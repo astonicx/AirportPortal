@@ -30,6 +30,16 @@ async function request(path, { method = "GET", body, headers = {}, signal } = {}
                 })
             );
         }
+        // Immediate ban enforcement: if the server signals the account is banned,
+        // broadcast a global event so the app can terminate the session and kick
+        // the user out to /login on the very next interaction.
+        if (res.status === 401 && data?.code === "ACCOUNT_BANNED") {
+            window.dispatchEvent(
+                new CustomEvent("auth:banned", {
+                    detail: { reason: data?.reason || null },
+                })
+            );
+        }
         const err = new Error(data?.error || res.statusText || "Request failed");
         err.status = res.status;
         err.data = data;

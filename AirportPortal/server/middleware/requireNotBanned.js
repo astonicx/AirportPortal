@@ -19,6 +19,7 @@ module.exports = function requireNotBanned(req, res, next) {
     res.clearCookie(COOKIE, { path: "/" });
     return res.status(401).json({
         error: "Account banned. Contact support.",
+        code: "ACCOUNT_BANNED",
         reason: row.banned_reason || null,
     });
 };

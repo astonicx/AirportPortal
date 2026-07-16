@@ -20,6 +20,7 @@
     "test:backend:mocked": "SKIP_LIVE=1 vitest run --config vitest.config.js --passWithNoTests",
     "test:backend:all": "npm run test:backend:mocked && npm run test:backend:live",
     "test:backend:all:no-skip": "SKIP_LIVE=0 MOCK_LIVE=1 BDPA_BASE_URL=http://127.0.0.1:4010 BEARER_TOKEN=test-bearer-token vitest run --config vitest.config.js --passWithNoTests",
+    "test:backend:no-skip": "CI=false SKIP_LIVE=0 MOCK_LIVE=1 BDPA_BASE_URL=http://127.0.0.1:4010 BEARER_TOKEN=test-bearer-token vitest run --config vitest.config.js --passWithNoTests",
     "test:backend:watch": "vitest --config vitest.config.js --passWithNoTests",
     "test:backend:seeded": "npm run test:db:setup && vitest run --config vitest.config.js --passWithNoTests",
     "test:backend:live": "SKIP_LIVE=0 vitest run --config vitest.config.js --passWithNoTests tests/integration/apiClient.live.test.mjs",
@@ -28,10 +29,12 @@
     "test:coverage": "npm run test:coverage:backend && npm run test:coverage:frontend",
     "test:coverage:backend": "SKIP_LIVE=1 vitest run --config vitest.config.js --coverage --passWithNoTests",
     "test:coverage:frontend": "vitest run --config vitest.frontend.config.js --coverage --passWithNoTests",
-    "test:e2e": "playwright test --pass-with-no-tests",
-    "test:e2e:ui": "playwright test --ui --pass-with-no-tests",
+    "test:coverage:no-skip": "npm run test:coverage:backend:no-skip && npm run test:coverage:frontend",
+    "test:coverage:backend:no-skip": "CI=false SKIP_LIVE=0 MOCK_LIVE=1 BDPA_BASE_URL=http://127.0.0.1:4010 BEARER_TOKEN=test-bearer-token vitest run --config vitest.config.js --coverage --passWithNoTests",
+    "test:e2e": "npm run test:e2e:install && playwright test",
+    "test:e2e:ui": "npm run test:e2e:install && playwright test --ui",
     "test:e2e:install": "playwright install chromium",
-    "test:e2e:server": "mkdir -p tests/.tmp && TEST_DB_PATH=tests/.tmp/e2e.sqlite node tests/db/scripts/setup.mjs && DB_PATH=tests/.tmp/e2e.sqlite NODE_ENV=test SESSION_COOKIE_SECRET=test-session-secret npm run dev",
+    "test:e2e:server": "mkdir -p tests/.tmp && TEST_DB_PATH=tests/.tmp/e2e.sqlite node tests/db/scripts/setup.mjs && concurrently \"vite --host 127.0.0.1 --port 3000 --strictPort\" \"DB_PATH=tests/.tmp/e2e.sqlite NODE_ENV=test SESSION_COOKIE_SECRET=test-session-secret node server/server.js\"",
     "test:db:setup": "node tests/db/scripts/setup.mjs",
     "test:db:reset": "node tests/db/scripts/reset.mjs",
     "test:db:teardown": "node tests/db/scripts/teardown.mjs"
@@ -108,6 +111,6 @@
     "tailwindcss": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "vite": "^5.0.0",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.8"
   }
 }

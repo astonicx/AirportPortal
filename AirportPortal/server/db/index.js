@@ -19,20 +19,37 @@ function runMigrations() {
     const applied = new Set(
         db.prepare("SELECT name FROM _migrations").all().map((r) => r.name)
     );
+    const pending = files.filter((f) => !applied.has(f));
+    if (!pending.length) return;
     const insert = db.prepare("INSERT INTO _migrations (name, applied_at) VALUES (?, ?)");
-    for (const f of files) {
-        if (applied.has(f)) continue;
-        const sql = fs.readFileSync(path.join(dir, f), "utf8");
-        db.exec("BEGIN");
-        try {
-            db.exec(sql);
-            insert.run(f, new Date().toISOString());
-            db.exec("COMMIT");
-        } catch (e) {
-            db.exec("ROLLBACK");
-            throw e;
+    // Disable foreign key enforcement while migrations run. Some migrations need
+    // to rebuild a parent table (SQLite can't alter CHECK constraints in place),
+    // and dropping a referenced table with FKs on would cascade-delete child
+    // rows. The pragma must be toggled outside any transaction. We re-enable and
+    // verify integrity with foreign_key_check once all migrations are applied.
+    db.pragma("foreign_keys = OFF");
+    try {
+        for (const f of pending) {
+            const sql = fs.readFileSync(path.join(dir, f), "utf8");
+            db.exec("BEGIN");
+            try {
+                db.exec(sql);
+                insert.run(f, new Date().toISOString());
+                db.exec("COMMIT");
+            } catch (e) {
+                db.exec("ROLLBACK");
+                throw e;
+            }
+            console.log(`migration applied: ${f}`);
         }
-        console.log(`migration applied: ${f}`);
+        const violations = db.pragma("foreign_key_check");
+        if (violations.length) {
+            throw new Error(
+                `foreign_key_check failed after migrations: ${JSON.stringify(violations)}`
+            );
+        }
+    } finally {
+        db.pragma("foreign_keys = ON");
     }
 }
 

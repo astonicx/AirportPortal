@@ -2,6 +2,8 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
+import ThemeToggle from "@/components/ThemeToggle";
+import UpcomingSidebar from "@/components/layout/UpcomingSidebar";
 import { toast } from "sonner";
 
 function Nav() {
@@ -23,11 +25,13 @@ function Nav() {
             <div className="h-1 w-full bg-gradient-to-r from-primary via-primary to-accent" />
             <div className="container flex flex-wrap items-center gap-3 py-3">
                 <Link to="/" className="group flex items-center gap-2.5">
-                    <img
-                        src="/images/BDPA_logo.png"
-                        alt="BDPA"
-                        className="h-10 w-auto transition-transform group-hover:scale-105"
-                    />
+                    <span className="flex items-center rounded-lg bg-brand-hero px-2 py-1.5 shadow-sm ring-1 ring-black/5 transition-transform group-hover:scale-105">
+                        <img
+                            src="/images/BDPA_logo.png"
+                            alt="BDPA"
+                            className="h-7 w-auto"
+                        />
+                    </span>
                     <span className="hidden text-lg font-extrabold tracking-tight sm:inline">
                         <span className="brand-gradient">AirportPortal</span>
                     </span>
@@ -36,6 +40,7 @@ function Nav() {
                     <NavLink to="/flights" className={link}>Flights</NavLink>
                     <NavLink to="/book" className={link}>Book</NavLink>
                     <NavLink to="/ticket-lookup" className={link}>Lookup</NavLink>
+                    {user && <NavLink to="/checkin" className={link}>Check in</NavLink>}
                     {user && <NavLink to="/dashboard" className={link}>Dashboard</NavLink>}
                     {user && <NavLink to="/settings" className={link}>Settings</NavLink>}
                     {(user?.type === "admin" || user?.type === "root") && (
@@ -46,6 +51,7 @@ function Nav() {
                     )}
                 </nav>
                 <div className="ml-auto flex items-center gap-2 text-sm">
+                    <ThemeToggle />
                     {user ? (
                         <>
                             <span className="hidden text-muted-foreground sm:inline">
@@ -80,6 +86,7 @@ function Nav() {
                     <NavLink to="/flights" className={link}>Flights</NavLink>
                     <NavLink to="/book" className={link}>Book</NavLink>
                     <NavLink to="/ticket-lookup" className={link}>Lookup</NavLink>
+                    {user && <NavLink to="/checkin" className={link}>Check in</NavLink>}
                     {user && <NavLink to="/dashboard" className={link}>Dashboard</NavLink>}
                     {user && <NavLink to="/settings" className={link}>Settings</NavLink>}
                     {(user?.type === "admin" || user?.type === "root") && (
@@ -130,18 +137,31 @@ export default function Layout() {
             <main
                 id="main-content"
                 key={loc.pathname}
-                className="container flex-1 animate-in-fade py-8"
+                className="flex-1 animate-in-fade py-8"
             >
-                <Outlet />
+                {user ? (
+                    <div className="container flex flex-col gap-6 lg:flex-row lg:items-start">
+                        <UpcomingSidebar />
+                        <div className="min-w-0 flex-1">
+                            <Outlet />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="container">
+                        <Outlet />
+                    </div>
+                )}
             </main>
             <footer className="mt-8 border-t border-border/70 bg-card">
                 <div className="container flex flex-col items-center justify-between gap-3 py-6 sm:flex-row">
                     <div className="flex items-center gap-2.5">
-                        <img
-                            src="/images/BDPA_logo.png"
-                            alt="BDPA"
-                            className="h-8 w-auto"
-                        />
+                        <span className="flex items-center rounded-lg bg-brand-hero px-2 py-1.5 shadow-sm ring-1 ring-black/5">
+                            <img
+                                src="/images/BDPA_logo.png"
+                                alt="BDPA"
+                                className="h-6 w-auto"
+                            />
+                        </span>
                         <span className="text-sm font-semibold">AirportPortal</span>
                     </div>
                     <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-muted-foreground">

@@ -49,7 +49,7 @@ export default function Login() {
                     <img
                         src="/images/BDPA_logo.png"
                         alt="BDPA"
-                        className="h-10 w-auto rounded-lg bg-white px-2 py-1.5 shadow-sm"
+                        className="h-10 w-auto"
                     />
                     <span className="text-lg font-extrabold tracking-tight">AirportPortal</span>
                 </div>
