@@ -66,8 +66,8 @@ export default function UpcomingSidebar() {
     const firstName = user?.firstName || user?.first_name || "Traveler";
 
     return (
-        <aside className="w-full shrink-0 xl:w-96">
-            <div className="space-y-4 rounded-2xl border border-border/70 bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md xl:sticky xl:top-24">
+        <aside className="w-full shrink-0 lg:w-72">
+            <div className="space-y-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md lg:sticky lg:top-24">
                 <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">Account</p>
                     <p className="mt-1 text-sm font-semibold">
