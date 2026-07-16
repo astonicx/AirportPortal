@@ -72,6 +72,13 @@ const patchSchema = z.object({
 router.patch("/", (req, res, next) => {
     try {
         const data = patchSchema.parse(req.body);
+        if (data.email !== undefined) {
+            return res.status(400).json({
+                error: "Email updates require verification and are not supported here.",
+                code: "EMAIL_CHANGE_REQUIRES_VERIFICATION",
+                issues: [{ path: ["email"], message: "Email change requires verification" }],
+            });
+        }
         const sets = [];
         const vals = [];
         for (const [k, v] of Object.entries(data)) {

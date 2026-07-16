@@ -12,6 +12,7 @@ import Flights from "@/pages/Flights";
 import FlightDetail from "@/pages/FlightDetail";
 import TicketLookup from "@/pages/TicketLookup";
 import Ticket from "@/pages/Ticket";
+import Checkin from "@/pages/Checkin";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import CompleteProfile from "@/pages/CompleteProfile";
@@ -52,6 +53,7 @@ export default function App() {
                     <Route path="flights" element={<Flights />} />
                     <Route path="flights/:id" element={<FlightDetail />} />
                     <Route path="ticket-lookup" element={<TicketLookup />} />
+                    <Route path="checkin" element={<Checkin />} />
                     {/* Spec route name */}
                     <Route path="ticket/:code" element={<Ticket />} />
                     {/* Backwards-compatible alias */}

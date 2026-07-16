@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import ThemeToggle from "@/components/ThemeToggle";
+import UpcomingSidebar from "@/components/layout/UpcomingSidebar";
 import { toast } from "sonner";
 
 function Nav() {
@@ -136,7 +137,12 @@ export default function Layout() {
                 key={loc.pathname}
                 className="container flex-1 animate-in-fade py-8"
             >
-                <Outlet />
+                <div className="flex items-start gap-6">
+                    <div className="min-w-0 flex-1">
+                        <Outlet />
+                    </div>
+                    {user && <UpcomingSidebar />}
+                </div>
             </main>
             <footer className="mt-8 border-t border-border/70 bg-card">
                 <div className="container flex flex-col items-center justify-between gap-3 py-6 sm:flex-row">

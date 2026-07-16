@@ -392,10 +392,28 @@ function lockSessionId(req) {
 router.post("/:id/seats/lock", (req, res) => {
     const sessionId = lockSessionId(req);
     if (!sessionId) return res.status(401).json({ error: "Unauthorized" });
-    const { seat } = req.body;
+    const { seat, seatClass } = req.body || {};
     if (!SEATS.includes(seat)) {
         return res.status(400).json({ error: "Invalid seat" });
     }
+
+    if (seatClass) {
+        const cached = getCached(req.params.id);
+        const classes = flightV2.seatClasses(cached?.payload || {});
+        const row = parseInt(String(seat).replace(/[^0-9]/g, ""), 10) || 0;
+        const perClass = Math.max(1, Math.ceil(15 / Math.max(1, classes.length)));
+        const idx = Math.min(classes.length - 1, Math.floor((row - 1) / perClass));
+        const expectedClass = (classes[idx]?.class || "economy").toLowerCase();
+        if (String(seatClass).toLowerCase() !== expectedClass) {
+            return res.status(400).json({
+                error: "Seat does not match requested class",
+                code: "SEAT_CLASS_MISMATCH",
+                seat,
+                expectedClass,
+            });
+        }
+    }
+
     const expires = new Date(Date.now() + LOCK_MIN * 60_000).toISOString();
     db.prepare(
         "DELETE FROM seat_locks WHERE flight_id=? AND session_id=?"
