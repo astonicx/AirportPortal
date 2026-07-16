@@ -136,7 +136,6 @@ export default function Layout() {
             <Nav />
             <main
                 id="main-content"
-                key={loc.pathname}
                 className="flex-1 animate-in-fade py-8"
             >
                 {user ? (
