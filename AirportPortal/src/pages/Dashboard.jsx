@@ -19,8 +19,8 @@ export default function Dashboard() {
                 <div className="pointer-events-none absolute inset-0 bg-brand-sheen" />
                 <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div className="space-y-1">
-                        <p className="text-sm font-medium text-white/70">Welcome back</p>
-                        <h1 className="text-white">{data.profile.firstName}</h1>
+                        <p className="text-sm font-medium text-white/70">Dashboard</p>
+                        <h1 className="text-white">Welcome, {data.profile.firstName}</h1>
                         <p className="text-sm text-white/80">
                             Last login: {data.profile.lastLoginDatetime || "—"} from{" "}
                             {data.profile.lastLoginIp || "—"}
@@ -49,7 +49,7 @@ export default function Dashboard() {
                 <h2>Upcoming</h2>
                 {data.upcoming.length === 0 && (
                     <p className="surface-card p-6 text-center text-muted-foreground">
-                        No upcoming trips yet.
+                        None.
                     </p>
                 )}
                 {data.upcoming.length > 0 && (
@@ -83,7 +83,7 @@ export default function Dashboard() {
                 <h2>Past</h2>
                 {data.past.length === 0 && (
                     <p className="surface-card p-6 text-center text-muted-foreground">
-                        No past trips.
+                        None.
                     </p>
                 )}
                 {data.past.length > 0 && (

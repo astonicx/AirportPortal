@@ -168,7 +168,9 @@ describe("Frontend Authentication", () => {
         renderWithProviders(<App />, { route: "/flights" });
 
         await waitFor(() => {
-            expect(screen.getByRole("link", { name: /^admin$/i })).toBeInTheDocument();
+            // Responsive layout renders both a desktop and a mobile nav,
+            // so the admin link appears once per nav.
+            expect(screen.getAllByRole("link", { name: /^admin$/i }).length).toBeGreaterThan(0);
         });
     });
 

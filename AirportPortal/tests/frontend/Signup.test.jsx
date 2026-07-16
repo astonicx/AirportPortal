@@ -28,7 +28,7 @@ describe("Signup Page", () => {
 
         it("renders security questions fieldset", () => {
             renderWithProviders(<Signup />);
-            const legend = screen.getByText("Security questions");
+            const legend = screen.getByText(/security questions/i);
             expect(legend).toBeInTheDocument();
         });
 
@@ -64,7 +64,7 @@ describe("Signup Page", () => {
 
             const emailInput = screen.getByLabelText(/email/i);
             await user.type(emailInput, "invalid-email");
-            
+
             // HTML5 validation should prevent submission
             expect(emailInput).toHaveAttribute("type", "email");
         });
@@ -126,7 +126,7 @@ describe("Signup Page", () => {
 
         it("validates security questions are answered", async () => {
             renderWithProviders(<Signup />);
-            
+
             // Security question inputs should be required
             const answerInputs = screen.getAllByPlaceholderText("Answer");
             answerInputs.forEach(input => {
@@ -149,7 +149,7 @@ describe("Signup Page", () => {
         it("displays error when email already exists", async () => {
             const user = userEvent.setup();
             frontendServer.use(errorHandlers.validationError[0]);
-            
+
             renderWithProviders(<Signup />);
 
             const emailInput = screen.getByLabelText(/email/i);
