@@ -135,14 +135,23 @@ export default function Layout() {
             <main
                 id="main-content"
                 key={loc.pathname}
-                className="container flex-1 animate-in-fade py-8"
+                className="flex-1 animate-in-fade py-8"
             >
-                <div className="flex items-start gap-6">
-                    <div className="min-w-0 flex-1">
+                {user ? (
+                    <div className="grid gap-6 px-3 xl:grid-cols-[24rem_minmax(0,1fr)_24rem] xl:items-start xl:px-4">
+                        <UpcomingSidebar />
+                        <div className="min-w-0">
+                            <div className="mx-auto w-full max-w-5xl">
+                                <Outlet />
+                            </div>
+                        </div>
+                        <div className="hidden xl:block" aria-hidden="true" />
+                    </div>
+                ) : (
+                    <div className="container">
                         <Outlet />
                     </div>
-                    {user && <UpcomingSidebar />}
-                </div>
+                )}
             </main>
             <footer className="mt-8 border-t border-border/70 bg-card">
                 <div className="container flex flex-col items-center justify-between gap-3 py-6 sm:flex-row">
