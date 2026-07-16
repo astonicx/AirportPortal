@@ -6,6 +6,7 @@ const { db, runMigrations } = require("../../../server/db");
 const requestId = require("../../../server/middleware/requestId");
 const errorHandler = require("../../../server/middleware/errorHandler");
 const { attachUser } = require("../../../server/middleware/auth");
+const bookingSession = require("../../../server/middleware/bookingSession");
 const completionGate = require("../../../server/middleware/completionGate");
 const { issueSession, COOKIE } = require("../../../server/utils/session");
 const { hashPassword } = require("../../../server/utils/password");
@@ -23,6 +24,7 @@ function initApp() {
     expressApp.use(cookieParser(process.env.SESSION_COOKIE_SECRET));
     expressApp.use(requestId);
     expressApp.use(attachUser);
+    expressApp.use(bookingSession);
     expressApp.use(completionGate);
 
     expressApp.use("/api/health", require("../../../server/routes/health"));

@@ -89,10 +89,14 @@ describe("routes: auth + health + method mismatch", () => {
     });
 
     it("POST /api/auth/login happy path returns 200 and sets cookie", async () => {
-        await createUser({ first_name: "Anna", last_name: "Smith", password: "VerySecure123" });
+        await createUser({
+            first_name: "Anna",
+            last_name: "Smith",
+            email: "anna.smith@test.local",
+            password: "VerySecure123",
+        });
         const res = await request(app).post("/api/auth/login").send({
-            firstName: "Anna",
-            lastName: "Smith",
+            email: "anna.smith@test.local",
             password: "VerySecure123",
             rememberMe: true,
         });
@@ -109,10 +113,14 @@ describe("routes: auth + health + method mismatch", () => {
     });
 
     it("POST /api/auth/login wrong password returns 401", async () => {
-        await createUser({ first_name: "Amy", last_name: "Stone", password: "RightPassword123" });
+        await createUser({
+            first_name: "Amy",
+            last_name: "Stone",
+            email: "amy.stone@test.local",
+            password: "RightPassword123",
+        });
         const res = await request(app).post("/api/auth/login").send({
-            firstName: "Amy",
-            lastName: "Stone",
+            email: "amy.stone@test.local",
             password: "WrongPassword",
         });
         expect(res.status).toBe(401);
@@ -120,25 +128,27 @@ describe("routes: auth + health + method mismatch", () => {
         expect(typeof res.body.attemptsRemaining).toBe("number");
     });
 
-    it("POST /api/auth/login collision without disambiguator returns 409", async () => {
+    it("POST /api/auth/login unknown email returns 401", async () => {
         await createUser({ first_name: "Same", last_name: "Name", password: "StrongPass123", email: "same1@test.local" });
-        await createUser({ first_name: "Same", last_name: "Name", password: "StrongPass124", email: "same2@test.local", });
         const res = await request(app).post("/api/auth/login").send({
-            firstName: "Same",
-            lastName: "Name",
+            email: "missing.user@test.local",
             password: "StrongPass123",
         });
-        expect(res.status).toBe(409);
-        expect(res.body.needsDisambiguator).toBe(true);
+        expect(res.status).toBe(401);
+        expect(res.body.error).toBe("Invalid credentials");
     });
 
     it("POST /api/auth/login locked user returns 423", async () => {
-        const u = await createUser({ first_name: "Lock", last_name: "Me", password: "StrongPass123" });
+        const u = await createUser({
+            first_name: "Lock",
+            last_name: "Me",
+            email: "lock.me@test.local",
+            password: "StrongPass123",
+        });
         const lockedUntil = new Date(Date.now() + 3600_000).toISOString();
         db.prepare("INSERT INTO user_lockouts (user_id, locked_until, failed_count) VALUES (?, ?, ?)").run(u.id, lockedUntil, 3);
         const res = await request(app).post("/api/auth/login").send({
-            firstName: "Lock",
-            lastName: "Me",
+            email: "lock.me@test.local",
             password: "StrongPass123",
         });
         expect(res.status).toBe(423);
@@ -168,21 +178,19 @@ describe("routes: auth + health + method mismatch", () => {
 
     it("POST /api/auth/recover/init not found returns 404", async () => {
         const res = await request(app).post("/api/auth/recover/init").send({
-            firstName: "None",
-            lastName: "Nobody",
-            dob: "1990-01-01",
+            email: "none.nobody@test.local",
         });
         expect(res.status).toBe(404);
     });
 
     it("POST /api/auth/recover/init malformed returns 400", async () => {
-        const res = await request(app).post("/api/auth/recover/init").send({ email: "x@test.local" });
+        const res = await request(app).post("/api/auth/recover/init").send({ firstName: "x" });
         expect(res.status).toBe(400);
         expect(Array.isArray(res.body.issues)).toBe(true);
     });
 
     it("POST /api/auth/recover/init happy returns questions", async () => {
-        const u = await createUser({ first_name: "Rec", last_name: "User", dob: "1990-01-01" });
+        const u = await createUser({ first_name: "Rec", last_name: "User", dob: "1990-01-01", email: "rec.user@test.local" });
         const a1 = await hashPassword("blue");
         const a2 = await hashPassword("dog");
         const a3 = await hashPassword("tree");
@@ -193,9 +201,7 @@ describe("routes: auth + health + method mismatch", () => {
         ]);
 
         const res = await request(app).post("/api/auth/recover/init").send({
-            firstName: "Rec",
-            lastName: "User",
-            dob: "1990-01-01",
+            email: "rec.user@test.local",
         });
         expect(res.status).toBe(200);
         expect(res.body.userId).toBe(u.id);
@@ -234,7 +240,7 @@ describe("routes: auth + health + method mismatch", () => {
     it("POST /api/auth/recover/reset invalid token returns 400", async () => {
         const res = await request(app).post("/api/auth/recover/reset").send({
             resetToken: "abcabcabcabc",
-            password: "StrongPassword123",
+            newPassword: "StrongPassword123",
         });
         expect(res.status).toBe(400);
         expect(res.body.error).toMatch(/Invalid or expired token/);
@@ -243,7 +249,7 @@ describe("routes: auth + health + method mismatch", () => {
     it("POST /api/auth/recover/reset weak password returns 400", async () => {
         const res = await request(app).post("/api/auth/recover/reset").send({
             resetToken: "toktoktoktok",
-            password: "short",
+            newPassword: "short",
         });
         expect(res.status).toBe(400);
     });
@@ -268,7 +274,7 @@ describe("routes: auth + health + method mismatch", () => {
 
         const reset = await request(app).post("/api/auth/recover/reset").send({
             resetToken: ans.body.resetToken,
-            password: "NewStrongPassword123",
+            newPassword: "NewStrongPassword123",
         });
         expect(reset.status).toBe(200);
         expect(reset.body.ok).toBe(true);

@@ -5,9 +5,7 @@ export async function loginByApiAndSetCookies({ page, baseURL, user }) {
 
     const response = await api.post("/api/auth/login", {
         data: {
-            firstName: user.firstName,
-            lastName: user.lastName,
-            disambiguator: user.disambiguator,
+            email: user.email,
             password: user.password,
             rememberMe: true,
         },
@@ -16,7 +14,7 @@ export async function loginByApiAndSetCookies({ page, baseURL, user }) {
     const responseBody = await response.text();
     expect(
         response.ok(),
-        `Expected seeded login to succeed for ${user.firstName} ${user.lastName}. Response status: ${response.status()}. Body: ${responseBody}`
+        `Expected seeded login to succeed for ${user.email}. Response status: ${response.status()}. Body: ${responseBody}`
     ).toBeTruthy();
 
     const state = await api.storageState();
