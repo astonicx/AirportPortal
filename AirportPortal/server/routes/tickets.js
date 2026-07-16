@@ -23,7 +23,7 @@ function checkinInfo(ticket, flight) {
     const windowMs = CHECKIN_WINDOW_HOURS * 3600 * 1000;
     const availableAt = dep ? new Date(dep - windowMs).toISOString() : null;
     const already = db
-        .prepare("SELECT id FROM checkin_records WHERE ticket_id=?")
+        .prepare("SELECT checked_in_at FROM checkin_records WHERE ticket_id=?")
         .get(ticket.id);
     const now = Date.now();
     const checkinEligible =
@@ -32,7 +32,13 @@ function checkinInfo(ticket, flight) {
         !already &&
         now >= dep - windowMs &&
         now < dep;
-    return { checkinEligible, availableAt, checkedIn: !!already };
+    return {
+        checkinEligible,
+        availableAt,
+        checkedIn: !!already,
+        checkedInAt: already?.checked_in_at || null,
+        requiresCheckinFirst: !!checkinEligible,
+    };
 }
 
 router.get("/by-confirmation", (req, res) => {
@@ -48,7 +54,34 @@ router.get("/by-confirmation", (req, res) => {
     if (!row) return res.status(404).json({ error: "Not found" });
     const cached = getCached(row.flight_id);
     const flight = cached?.payload || null;
-    res.json({ ticket: row, flight, ...checkinInfo(row, flight) });
+    const info = checkinInfo(row, flight);
+    res.json({
+        ticket: {
+            ...row,
+            checked_in_at: info.checkedInAt,
+            requires_checkin_first: info.requiresCheckinFirst,
+        },
+        flight,
+        checkin_eligible: info.checkinEligible,
+        available_at: info.availableAt,
+        checked_in_at: info.checkedInAt,
+        requires_checkin_first: info.requiresCheckinFirst,
+    });
+});
+
+router.get("/:id/checkin-eligible", (req, res) => {
+    const id = Number(req.params.id);
+    const row = db.prepare("SELECT * FROM tickets WHERE id=?").get(id);
+    if (!row) return res.status(404).json({ error: "Not found" });
+    const flight = getCached(row.flight_id)?.payload || null;
+    const info = checkinInfo(row, flight);
+    res.json({
+        ticketId: id,
+        checkinEligible: info.checkinEligible,
+        availableAt: info.availableAt,
+        checkedInAt: info.checkedInAt,
+        requiresCheckinFirst: info.requiresCheckinFirst,
+    });
 });
 
 // ── POST /api/tickets/:id/checkin ───────────────────────────────────────────
@@ -157,17 +190,24 @@ router.post("/:id/cancel", async (req, res, next) => {
             t.seat
         );
 
-        // Refund any frequent flier miles spent on this ticket's extras to the
-        // ticket owner. Idempotent: cancelled tickets return 409 above, so this
-        // runs at most once per ticket.
+        // Fully reconcile FFM to pre-booking state for this ticket. Idempotent:
+        // cancelled tickets return 409 above, so this runs at most once.
         let ffmBalance = null;
         if (t.user_id) {
-            const refund = db
-                .prepare(
-                    "SELECT COALESCE(SUM(cost_ffm),0) AS ffm FROM ticket_extras WHERE ticket_id=?"
-                )
-                .get(id).ffm;
-            if (refund > 0) ffm.earn(t.user_id, refund);
+            let spent = Number(t.ffm_spent || 0);
+            // Backward-compatible fallback for pre-migration tickets.
+            if (spent <= 0) {
+                spent = Number(
+                    db
+                        .prepare(
+                            "SELECT COALESCE(SUM(cost_ffm),0) AS ffm FROM ticket_extras WHERE ticket_id=?"
+                        )
+                        .get(id).ffm || 0
+                );
+            }
+            const earned = Number(t.ffm_earned || 0);
+            if (spent > 0) ffm.earn(t.user_id, spent);
+            if (earned > 0) ffm.spend(t.user_id, earned);
             ffmBalance = ffm.getBalance(t.user_id).ffmBalance;
         }
 

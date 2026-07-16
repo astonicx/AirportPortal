@@ -9,8 +9,12 @@ export function BookingProvider({ children }) {
         passenger: null,
         payment: null,
         seat: null,
+        seatClass: null,
+        extras: [],
+        ffmToApply: 0,
         carryOnCount: 0,
         checkedCount: 0,
+        baggagePricing: null,
     });
     const update = (patch) => setBooking((b) => ({ ...b, ...patch }));
     const reset = () =>
@@ -20,8 +24,12 @@ export function BookingProvider({ children }) {
             passenger: null,
             payment: null,
             seat: null,
+            seatClass: null,
+            extras: [],
+            ffmToApply: 0,
             carryOnCount: 0,
             checkedCount: 0,
+            baggagePricing: null,
         });
     return (
         <BookingCtx.Provider value={{ booking, update, reset }}>
