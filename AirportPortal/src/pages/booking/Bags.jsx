@@ -16,31 +16,39 @@ export default function Bags() {
     const ch = booking.checkedCount;
 
     return (
-        <div className="mx-auto max-w-xl space-y-4">
-            <h1 className="text-xl font-bold">Bags</h1>
-            <label className="block text-sm">
-                Carry-on bags (0–2)
-                <input
-                    type="number" min={0} max={2} value={co}
-                    onChange={(e) => update({ carryOnCount: Math.min(2, Math.max(0, +e.target.value)) })}
-                    className="mt-1 w-full rounded border px-3 py-2"
-                />
-            </label>
-            <label className="block text-sm">
-                Checked bags (0–5)
-                <input
-                    type="number" min={0} max={5} value={ch}
-                    onChange={(e) => update({ checkedCount: Math.min(5, Math.max(0, +e.target.value)) })}
-                    className="mt-1 w-full rounded border px-3 py-2"
-                />
-            </label>
-            <p className="text-sm">Bag fees: <span className="font-semibold">${feeFor(co, ch)}</span></p>
-            <button
-                onClick={() => navigate(`/book/${id}/payment`)}
-                className="rounded bg-milwaukeeBlue px-4 py-2 text-white"
-            >
-                Continue → Payment
-            </button>
+        <div className="animate-in-up mx-auto max-w-xl space-y-5">
+            <div className="space-y-1">
+                <p className="page-eyebrow">Booking · Step 3</p>
+                <h1>Bags</h1>
+            </div>
+            <div className="form-card space-y-4">
+                <label className="field-label">
+                    Carry-on bags (0–2)
+                    <input
+                        type="number" min={0} max={2} value={co}
+                        onChange={(e) => update({ carryOnCount: Math.min(2, Math.max(0, +e.target.value)) })}
+                        className="field-input"
+                    />
+                </label>
+                <label className="field-label">
+                    Checked bags (0–5)
+                    <input
+                        type="number" min={0} max={5} value={ch}
+                        onChange={(e) => update({ checkedCount: Math.min(5, Math.max(0, +e.target.value)) })}
+                        className="field-input"
+                    />
+                </label>
+                <div className="flex items-center justify-between rounded-lg bg-secondary/60 px-4 py-3 text-sm">
+                    <span>Bag fees</span>
+                    <span className="font-semibold text-primary">${feeFor(co, ch)}</span>
+                </div>
+                <button
+                    onClick={() => navigate(`/book/${id}/payment`)}
+                    className="btn-primary w-full"
+                >
+                    Continue → Payment
+                </button>
+            </div>
         </div>
     );
 }

@@ -39,33 +39,36 @@ export default function CompleteProfile() {
     };
 
     return (
-        <div className="mx-auto max-w-xl space-y-4">
-            <h1 className="text-2xl font-bold">Complete your account</h1>
-            <form onSubmit={submit} className="space-y-3">
+        <div className="animate-in-up mx-auto max-w-xl space-y-5">
+            <div className="space-y-1">
+                <p className="page-eyebrow">Getting started</p>
+                <h1>Complete your account</h1>
+            </div>
+            <form onSubmit={submit} className="form-card space-y-4">
                 {user?.mustChangePassword && (
                     <>
-                        <label className="block text-sm">
+                        <label className="field-label">
                             New password
                             <input type="password" required value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="mt-1 w-full rounded border px-3 py-2" />
+                                className="field-input" />
                         </label>
                         <PasswordStrengthMeter password={password} />
                     </>
                 )}
                 {user?.mustCompleteProfile && (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {Object.keys(profile).map((k) => (
-                            <label key={k} className="block text-sm">
+                            <label key={k} className="field-label capitalize">
                                 {k}
                                 <input value={profile[k]} onChange={set(k)}
-                                    className="mt-1 w-full rounded border px-3 py-2" />
+                                    className="field-input" />
                             </label>
                         ))}
                     </div>
                 )}
-                {err && <p className="text-destructive">{err.message}</p>}
-                <button className="rounded bg-milwaukeeBlue px-4 py-2 text-white">Continue</button>
+                {err && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{err.message}</p>}
+                <button className="btn-primary w-full">Continue</button>
             </form>
         </div>
     );

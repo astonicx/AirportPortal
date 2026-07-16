@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { statusPillClass } from "@/lib/flightStatus";
 
 const COLUMNS = [
     { key: "flightNumber", label: "Flight" },
@@ -16,19 +17,19 @@ export default function FlightTable({ items, sortBy, sortDir, onSort }) {
         sortBy === key ? (sortDir === "asc" ? " ▲" : " ▼") : "";
 
     return (
-        <div className="hidden overflow-x-auto rounded border md:block">
+        <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
-                <thead className="bg-secondary">
-                    <tr>
+                <thead>
+                    <tr className="border-b bg-secondary/60 text-xs uppercase tracking-wide text-muted-foreground">
                         {COLUMNS.map((c) => (
-                            <th key={c.key} className="px-3 py-2 text-left">
+                            <th key={c.key} className="px-4 py-3 text-left font-semibold">
                                 {c.sortable === false ? (
                                     c.label
                                 ) : (
                                     <button
                                         type="button"
                                         onClick={() => onSort(c.key)}
-                                        className="font-medium underline-offset-2 hover:underline"
+                                        className="font-semibold uppercase tracking-wide underline-offset-2 hover:text-foreground hover:underline"
                                         aria-label={`Sort by ${c.label}`}
                                     >
                                         {c.label}
@@ -37,41 +38,47 @@ export default function FlightTable({ items, sortBy, sortDir, onSort }) {
                                 )}
                             </th>
                         ))}
-                        <th className="px-3 py-2 text-left">Bookable</th>
-                        <th className="px-3 py-2"></th>
+                        <th className="px-4 py-3 text-left font-semibold">Bookable</th>
+                        <th className="px-4 py-3"></th>
                     </tr>
                 </thead>
                 <tbody>
                     {items.map((f) => (
-                        <tr key={f.flight_id || f.id} className="border-t">
-                            <td className="px-3 py-2">{f.flightNumber}</td>
-                            <td className="px-3 py-2">{f.airline}</td>
-                            <td className="px-3 py-2">{f.from || "\u2014"}</td>
-                            <td className="px-3 py-2">{f.to || "\u2014"}</td>
-                            <td className="px-3 py-2">{f.time}</td>
-                            <td className="px-3 py-2">{f.gate || "\u2014"}</td>
-                            <td className="px-3 py-2">{f.status}</td>
-                            <td className="px-3 py-2">
+                        <tr
+                            key={f.flight_id || f.id}
+                            className="border-b transition-colors even:bg-muted/30 hover:bg-primary/5"
+                        >
+                            <td className="px-4 py-3 font-semibold">{f.flightNumber}</td>
+                            <td className="px-4 py-3">{f.airline}</td>
+                            <td className="px-4 py-3">{f.from || "\u2014"}</td>
+                            <td className="px-4 py-3">{f.to || "\u2014"}</td>
+                            <td className="px-4 py-3">{f.time}</td>
+                            <td className="px-4 py-3">{f.gate || "\u2014"}</td>
+                            <td className="px-4 py-3">
+                                <span className={statusPillClass(f.status)}>{f.status}</span>
+                            </td>
+                            <td className="px-4 py-3">
                                 {f.canBook ? (
-                                    <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                                        Bookable
-                                    </span>
+                                    <span className="pill pill-success">Bookable</span>
                                 ) : (
-                                    <span className="rounded bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                    <span className="pill bg-secondary text-muted-foreground">
                                         Not bookable
                                     </span>
                                 )}
                             </td>
-                            <td className="px-3 py-2">
-                                <Link to={`/flights/${f.flight_id || f.id}`} className="underline">
-                                    Details
+                            <td className="px-4 py-3">
+                                <Link
+                                    to={`/flights/${f.flight_id || f.id}`}
+                                    className="font-medium text-primary hover:underline"
+                                >
+                                    Details →
                                 </Link>
                             </td>
                         </tr>
                     ))}
                     {!items.length && (
                         <tr>
-                            <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
+                            <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                                 No flights.
                             </td>
                         </tr>

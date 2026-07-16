@@ -44,25 +44,31 @@ export default function Review() {
     }
 
     return (
-        <div className="mx-auto max-w-xl space-y-4">
-            <h1 className="text-xl font-bold">Review &amp; book</h1>
-            <dl className="grid grid-cols-2 gap-2 text-sm">
-                <dt>Passenger</dt><dd>{booking.passenger.first} {booking.passenger.last}</dd>
-                <dt>Seat</dt><dd>{booking.seat}</dd>
-                <dt>Bags</dt><dd>{booking.carryOnCount} carry-on · {booking.checkedCount} checked</dd>
-                <dt>Card ending</dt><dd>•••• {booking.payment.cardNumber.slice(-4)}</dd>
-                <dt>Seat price</dt><dd>${seatPrice.toFixed(2)}</dd>
-                <dt>Bag fees</dt><dd>${fees(booking.carryOnCount, booking.checkedCount).toFixed(2)}</dd>
-                <dt className="font-semibold">Total</dt><dd className="font-semibold">${total.toFixed(2)}</dd>
-            </dl>
-            {err && <p className="text-destructive">{err.data?.error || err.message}</p>}
-            <button
-                disabled={busy}
-                onClick={submit}
-                className="rounded bg-milwaukeeBlue px-4 py-2 text-white disabled:opacity-50"
-            >
-                {busy ? "Booking…" : "Confirm booking"}
-            </button>
+        <div className="animate-in-up mx-auto max-w-xl space-y-5">
+            <div className="space-y-1">
+                <p className="page-eyebrow">Booking · Step 5</p>
+                <h1>Review &amp; book</h1>
+            </div>
+            <div className="form-card space-y-3">
+                <dl className="space-y-2 text-sm">
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Passenger</dt><dd className="font-medium">{booking.passenger.first} {booking.passenger.last}</dd></div>
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Seat</dt><dd className="font-medium">{booking.seat}</dd></div>
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Bags</dt><dd className="font-medium">{booking.carryOnCount} carry-on · {booking.checkedCount} checked</dd></div>
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Card ending</dt><dd className="font-medium">•••• {booking.payment.cardNumber.slice(-4)}</dd></div>
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Seat price</dt><dd className="font-medium">${seatPrice.toFixed(2)}</dd></div>
+                    <div className="flex justify-between"><dt className="text-muted-foreground">Bag fees</dt><dd className="font-medium">${fees(booking.carryOnCount, booking.checkedCount).toFixed(2)}</dd></div>
+                    <div className="flex justify-between border-t border-border/70 pt-2 text-base"><dt className="font-semibold">Total</dt><dd className="font-bold text-primary">${total.toFixed(2)}</dd></div>
+                </dl>
+                {err && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{err.data?.error || err.message}</p>}
+                <button
+                    disabled={busy}
+                    onClick={submit}
+                    className="btn-primary w-full"
+                >
+                    {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
+                    {busy ? "Booking…" : "Confirm booking"}
+                </button>
+            </div>
         </div>
     );
 }

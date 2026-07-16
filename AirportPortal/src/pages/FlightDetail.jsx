@@ -34,29 +34,32 @@ export default function FlightDetail() {
         new Date(flight.arriveAtReceiver || 0).getTime() > Date.now() + 24 * 3600_000;
 
     return (
-        <div className="mx-auto max-w-2xl space-y-4">
-            <h1 className="text-2xl font-bold">
-                {flight.airline} {flight.flightNumber}
-            </h1>
-            <dl className="grid grid-cols-2 gap-2 text-sm">
-                <dt className="font-medium">Origin</dt><dd>{flight.comingFrom || "—"}</dd>
-                <dt className="font-medium">Destination</dt><dd>{flight.departingTo || flight.landingAt || "—"}</dd>
-                <dt className="font-medium">Departs</dt><dd>{flight.departFromSender || "—"}</dd>
-                <dt className="font-medium">Arrives</dt><dd>{flight.arriveAtReceiver || "—"}</dd>
-                <dt className="font-medium">Gate</dt><dd>{flight.gate || "—"}</dd>
-                <dt className="font-medium">Status</dt><dd>{flight.status}</dd>
-                <dt className="font-medium">Seat price</dt>
-                <dd>${(flight.seat_price ?? flight.seatPrice ?? 0).toFixed(2)}</dd>
-            </dl>
+        <div className="animate-in-up mx-auto max-w-2xl space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p className="page-eyebrow">Flight detail</p>
+                    <h1>
+                        {flight.airline} {flight.flightNumber}
+                    </h1>
+                </div>
+                <span className="pill pill-info capitalize">{flight.status}</span>
+            </div>
+            <div className="surface-card p-6">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div><dt className="text-muted-foreground">Origin</dt><dd className="font-medium">{flight.comingFrom || "—"}</dd></div>
+                    <div><dt className="text-muted-foreground">Destination</dt><dd className="font-medium">{flight.departingTo || flight.landingAt || "—"}</dd></div>
+                    <div><dt className="text-muted-foreground">Departs</dt><dd className="font-medium">{flight.departFromSender || "—"}</dd></div>
+                    <div><dt className="text-muted-foreground">Arrives</dt><dd className="font-medium">{flight.arriveAtReceiver || "—"}</dd></div>
+                    <div><dt className="text-muted-foreground">Gate</dt><dd className="font-medium">{flight.gate || "—"}</dd></div>
+                    <div><dt className="text-muted-foreground">Seat price</dt><dd className="font-semibold text-primary">${(flight.seat_price ?? flight.seatPrice ?? 0).toFixed(2)}</dd></div>
+                </dl>
+            </div>
             {canBook ? (
-                <Link
-                    to={`/book/${id}/passenger`}
-                    className="inline-block rounded bg-milwaukeeBlue px-4 py-2 text-white"
-                >
+                <Link to={`/book/${id}/passenger`} className="btn-primary">
                     Book this flight
                 </Link>
             ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="rounded-lg border border-border bg-secondary/50 px-4 py-3 text-sm text-muted-foreground">
                     This flight is not currently bookable.
                 </p>
             )}

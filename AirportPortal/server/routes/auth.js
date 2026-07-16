@@ -1,6 +1,7 @@
 "use strict";
 const router = require("express").Router();
 const { randomBytes } = require("crypto");
+const { z } = require("zod");
 const { db } = require("../db");
 const { hashPassword, verifyPassword, passwordPolicy } = require("../utils/password");
 const { issueSession, destroy, COOKIE, cookieOpts } = require("../utils/session");
@@ -99,6 +100,39 @@ router.post("/signup", async (req, res, next) => {
     }
 });
 
+// ── POST /api/auth/verify-email ─────────────────────────────────────────────
+// Public: a customer confirms an admin-created account via their one-time token.
+const verifyEmailSchema = z.object({ token: z.string().min(1) });
+
+router.post("/verify-email", (req, res, next) => {
+    try {
+        const { token } = verifyEmailSchema.parse(req.body || {});
+        const user = db
+            .prepare(
+                "SELECT id, email_verified, verification_token_expires FROM users WHERE verification_token=?"
+            )
+            .get(token);
+        if (!user) {
+            return res.status(400).json({ error: "Invalid or expired verification link." });
+        }
+        if (Number(user.email_verified) === 1) {
+            return res.json({ ok: true, alreadyVerified: true });
+        }
+        if (
+            user.verification_token_expires &&
+            new Date(user.verification_token_expires) < new Date()
+        ) {
+            return res.status(400).json({ error: "Verification link has expired." });
+        }
+        db.prepare(
+            "UPDATE users SET email_verified=1, verification_token=NULL, verification_token_expires=NULL WHERE id=?"
+        ).run(user.id);
+        res.json({ ok: true });
+    } catch (e) {
+        next(e);
+    }
+});
+
 // ── POST /api/auth/login ────────────────────────────────────────────────────
 function auditLogin(userId, req, success) {
     try {
@@ -132,6 +166,14 @@ router.post("/login", async (req, res, next) => {
         if (Number(user.is_banned) === 1) {
             auditLogin(user.id, req, false);
             return res.status(403).json({ error: "Account banned" });
+        }
+
+        if (Number(user.email_verified) === 0) {
+            auditLogin(user.id, req, false);
+            return res.status(403).json({
+                error: "Account not verified. Please confirm your email before logging in.",
+                code: "EMAIL_NOT_VERIFIED",
+            });
         }
 
         // lockout check

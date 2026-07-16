@@ -21,7 +21,7 @@ export default function AdminTickets() {
             <input
                 type="search" placeholder="Search…" value={q}
                 onChange={(e) => setQ(e.target.value)}
-                className="w-full max-w-md rounded border px-3 py-2"
+                className="w-full max-w-md field-input"
             />
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">

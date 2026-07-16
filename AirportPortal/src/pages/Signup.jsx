@@ -102,41 +102,51 @@ export default function Signup() {
 
     if (success) {
         return (
-            <div className="mx-auto max-w-md space-y-4">
-                <h1 className="text-2xl font-bold">Account created</h1>
-                <p>
-                    Welcome, {success.firstName} {success.lastName}! Your account is ready.
-                </p>
-                {success.disambiguator ? (
-                    <div className="rounded border border-milwaukeeBlue bg-milwaukeeBlue/10 p-3 text-sm">
-                        <p className="font-medium">Another user shares your name.</p>
-                        <p className="mt-1">
-                            Your login <strong>disambiguator</strong> is{" "}
-                            <span className="rounded bg-white px-2 py-0.5 font-mono text-base">
-                                {success.disambiguator}
-                            </span>
-                            . Keep it handy — you’ll need it to log in.
-                        </p>
+            <div className="animate-in-up mx-auto max-w-md space-y-4">
+                <div className="surface-card space-y-4 p-8 text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-2xl text-success">
+                        ✓
                     </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground">
-                        Your name is unique, so no disambiguator is needed to log in.
+                    <h1>Account created</h1>
+                    <p className="text-muted-foreground">
+                        Welcome, {success.firstName} {success.lastName}! Your account is ready.
                     </p>
-                )}
-                <Link
-                    to="/login"
-                    className="inline-block rounded bg-milwaukeeBlue px-4 py-2 text-white"
-                >
-                    Go to login
-                </Link>
+                    {success.disambiguator ? (
+                        <div className="rounded-lg border border-primary/40 bg-primary/10 p-4 text-left text-sm">
+                            <p className="font-semibold">Another user shares your name.</p>
+                            <p className="mt-1">
+                                Your login <strong>disambiguator</strong> is{" "}
+                                <span className="rounded bg-white px-2 py-0.5 font-mono text-base shadow-sm">
+                                    {success.disambiguator}
+                                </span>
+                                . Keep it handy — you’ll need it to log in.
+                            </p>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            Your name is unique, so no disambiguator is needed to log in.
+                        </p>
+                    )}
+                    <Link
+                        to="/login"
+                        className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm transition-all hover:shadow-md hover:brightness-110"
+                    >
+                        Go to login
+                    </Link>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="mx-auto max-w-2xl space-y-4">
-            <h1 className="text-2xl font-bold">Create your account</h1>
-            <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="animate-in-up mx-auto max-w-2xl space-y-4">
+            <div className="space-y-1">
+                <h1>Create your account</h1>
+                <p className="text-sm text-muted-foreground">
+                    Join AirportPortal to book and manage your flights.
+                </p>
+            </div>
+            <form onSubmit={submit} className="surface-card grid grid-cols-1 gap-3 p-6 sm:grid-cols-2">
                 {[
                     ["First name", "firstName", "given-name", true],
                     ["Middle name", "middleName", "additional-name", false],
@@ -161,7 +171,7 @@ export default function Signup() {
                             onChange={set(key)}
                             required={req}
                             autoComplete={ac}
-                            className="mt-1 w-full rounded border px-3 py-2"
+                            className="field-input"
                         />
                     </label>
                 ))}
@@ -174,7 +184,7 @@ export default function Signup() {
                             onChange={set("password")}
                             required
                             autoComplete="new-password"
-                            className="mt-1 w-full rounded border px-3 py-2"
+                            className="field-input"
                         />
                     </label>
                     <PasswordStrengthMeter password={form.password} />
@@ -192,7 +202,7 @@ export default function Signup() {
                                     next[i] = { ...q, question: e.target.value };
                                     setSq(next);
                                 }}
-                                className="rounded border px-3 py-2"
+                                className="field-input"
                             >
                                 {QUESTIONS.map((qq) => (
                                     <option key={qq} value={qq}>{qq}</option>
@@ -208,13 +218,13 @@ export default function Signup() {
                                     setSq(next);
                                 }}
                                 required
-                                className="rounded border px-3 py-2"
+                                className="field-input"
                             />
                             <button
                                 type="button"
                                 onClick={() => removeQuestion(i)}
                                 disabled={sq.length <= 3}
-                                className="rounded border px-3 py-2 text-sm text-destructive disabled:opacity-40"
+                                className="field-input text-sm text-destructive disabled:opacity-40"
                                 aria-label="Remove security question"
                             >
                                 Remove
@@ -240,8 +250,11 @@ export default function Signup() {
                 <button
                     type="submit"
                     disabled={busy}
-                    className="sm:col-span-2 rounded bg-milwaukeeBlue px-4 py-2 text-white disabled:opacity-60"
+                    className="sm:col-span-2 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm transition-all hover:shadow-md hover:brightness-110 disabled:opacity-60"
                 >
+                    {busy && (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    )}
                     {busy ? "Creating…" : "Create account"}
                 </button>
             </form>

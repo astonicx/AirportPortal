@@ -1,9 +1,18 @@
 "use strict";
 const router = require("express").Router();
+const { randomBytes } = require("crypto");
 const { z } = require("zod");
 const { db } = require("../db");
 const { hashPassword } = require("../utils/password");
 const { requireAdmin } = require("../middleware/auth");
+const { verifyAgainstBdpa } = require("../utils/accountVerification");
+
+// Builds a one-time verification token + shareable confirmation link.
+function newVerification() {
+    const token = randomBytes(24).toString("hex");
+    const expires = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+    return { token, expires };
+}
 
 router.use(requireAdmin);
 
@@ -47,7 +56,7 @@ router.get("/customers", (req, res) => {
     const q = `%${(req.query.q || "").toLowerCase()}%`;
     const rows = db
         .prepare(
-            `SELECT id, first_name, last_name, email, phone, address1, city, is_banned, banned_reason
+            `SELECT id, first_name, last_name, email, phone, address1, city, is_banned, banned_reason, email_verified
        FROM users
        WHERE type='customer'
          AND (lower(email) LIKE ? OR lower(first_name) LIKE ? OR lower(last_name) LIKE ?
@@ -123,19 +132,74 @@ function requireRootUser(req, res) {
 router.post("/customers", async (req, res, next) => {
     try {
         const data = createCust.parse(req.body);
+
+        // Validate uniqueness before insert so we return a clean error instead
+        // of leaking a raw SQLite UNIQUE constraint failure.
+        const existing = db
+            .prepare("SELECT id FROM users WHERE lower(email)=lower(?)")
+            .get(data.email);
+        if (existing) {
+            return res.status(409).json({ error: "Email already registered." });
+        }
+
+        // External BDPA V2 verification is pending the V2 API; the stub reports
+        // `pending` and never blocks creation for now.
+        const external = await verifyAgainstBdpa({
+            email: data.email,
+            first_name: data.first_name,
+            last_name: data.last_name,
+        });
+
+        // Admin-created accounts start unverified: the customer must confirm via
+        // the emailed link before they can log in.
         const hash = await hashPassword(data.password);
+        const { token, expires } = newVerification();
         const info = db
             .prepare(
                 `INSERT INTO users
-         (type, first_name, last_name, email, password_hash, must_change_password, must_complete_profile, user_type)
-         VALUES ('customer', ?, ?, ?, ?, 1, 1, 'customer')`
+         (type, first_name, last_name, email, password_hash, must_change_password, must_complete_profile, user_type,
+          email_verified, verification_token, verification_token_expires)
+         VALUES ('customer', ?, ?, ?, ?, 1, 1, 'customer', 0, ?, ?)`
             )
-            .run(data.first_name, data.last_name, data.email, hash);
-        audit(req, "create", info.lastInsertRowid, { email: data.email });
-        res.status(201).json({ id: info.lastInsertRowid });
+            .run(data.first_name, data.last_name, data.email, hash, token, expires);
+        audit(req, "create", info.lastInsertRowid, {
+            email: data.email,
+            externalVerification: external.pending ? "pending" : external.verified,
+        });
+        res.status(201).json({
+            id: info.lastInsertRowid,
+            emailVerified: false,
+            verificationToken: token,
+            verificationUrl: `/verify-email?token=${token}`,
+            externalVerification: external,
+        });
     } catch (e) {
         next(e);
     }
+});
+
+// Regenerate the confirmation link for an unverified customer.
+router.post("/customers/:id/resend-verification", (req, res) => {
+    const id = Number(req.params.id);
+    const target = db
+        .prepare("SELECT id, type, email_verified FROM users WHERE id=?")
+        .get(id);
+    if (!target || target.type !== "customer") {
+        return res.status(404).json({ error: "Not found" });
+    }
+    if (Number(target.email_verified) === 1) {
+        return res.status(400).json({ error: "Account already verified" });
+    }
+    const { token, expires } = newVerification();
+    db.prepare(
+        "UPDATE users SET verification_token=?, verification_token_expires=? WHERE id=?"
+    ).run(token, expires, id);
+    audit(req, "resend_verification", id, {});
+    res.json({
+        id,
+        verificationToken: token,
+        verificationUrl: `/verify-email?token=${token}`,
+    });
 });
 
 router.patch("/customers/:id", (req, res) => {

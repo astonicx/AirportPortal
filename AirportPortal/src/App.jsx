@@ -1,12 +1,13 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Layout from "@/components/layout/Layout";
-import { RequireAuth, RequireAdmin } from "@/components/Guards";
+import { RequireAuth, RequireAdmin, RequireAttendant } from "@/components/Guards";
 import { BookingProvider } from "@/context/BookingContext";
 
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Recover from "@/pages/Recover";
+import VerifyEmail from "@/pages/VerifyEmail";
 import Flights from "@/pages/Flights";
 import FlightDetail from "@/pages/FlightDetail";
 import TicketLookup from "@/pages/TicketLookup";
@@ -28,6 +29,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminCustomers from "@/pages/admin/AdminCustomers";
 import AdminTickets from "@/pages/admin/AdminTickets";
 import AdminAdmins from "@/pages/admin/AdminAdmins";
+import AttendantDashboard from "@/pages/admin/AttendantDashboard";
 
 function BookingShell() {
     return (
@@ -46,6 +48,7 @@ export default function App() {
                     <Route path="login" element={<Login />} />
                     <Route path="signup" element={<Signup />} />
                     <Route path="recover" element={<Recover />} />
+                    <Route path="verify-email" element={<VerifyEmail />} />
                     <Route path="flights" element={<Flights />} />
                     <Route path="flights/:id" element={<FlightDetail />} />
                     <Route path="ticket-lookup" element={<TicketLookup />} />
@@ -92,6 +95,11 @@ export default function App() {
                         <Route path="tickets" element={<AdminTickets />} />
                         <Route path="admins" element={<AdminAdmins />} />
                     </Route>
+
+                    <Route
+                        path="attendant"
+                        element={<RequireAttendant><AttendantDashboard /></RequireAttendant>}
+                    />
 
                     <Route path="*" element={<NotFound />} />
                 </Route>

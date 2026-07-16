@@ -34,3 +34,11 @@ export function RequireRoot({ children }) {
     if (!user || user.type !== "root") return <Navigate to="/" replace />;
     return children;
 }
+
+export function RequireAttendant({ children }) {
+    const { user, ready } = useAuth();
+    if (!ready) return <Wait />;
+    if (!user) return <Navigate to="/login" replace />;
+    if (user.type !== "attendant") return <Navigate to="/" replace />;
+    return children;
+}

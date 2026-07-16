@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -8,16 +8,25 @@ export default function AdminLayout() {
     const [stats, setStats] = useState(null);
     useEffect(() => { api.get("/api/admin/stats").then(setStats).catch(() => { }); }, []);
 
+    const tabClass = ({ isActive }) =>
+        `rounded-lg px-3.5 py-1.5 font-medium transition-colors ${isActive
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+        }`;
+
     return (
-        <div className="space-y-6">
-            <header>
-                <h1 className="text-2xl font-bold">Admin</h1>
-                <nav className="mt-2 flex gap-3 text-sm">
-                    <Link to="/admin" className="underline">Dashboard</Link>
-                    <Link to="/admin/customers" className="underline">Customers</Link>
-                    <Link to="/admin/tickets" className="underline">Tickets</Link>
+        <div className="animate-in-up space-y-6">
+            <header className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <span className="pill pill-info">Admin</span>
+                    <h1>Control center</h1>
+                </div>
+                <nav className="flex flex-wrap gap-1 rounded-xl border border-border/70 bg-card p-1 text-sm shadow-card">
+                    <NavLink to="/admin" end className={tabClass}>Dashboard</NavLink>
+                    <NavLink to="/admin/customers" className={tabClass}>Customers</NavLink>
+                    <NavLink to="/admin/tickets" className={tabClass}>Tickets</NavLink>
                     {user?.type === "root" && (
-                        <Link to="/admin/admins" className="underline">Admins</Link>
+                        <NavLink to="/admin/admins" className={tabClass}>Admins</NavLink>
                     )}
                 </nav>
             </header>

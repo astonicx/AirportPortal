@@ -67,9 +67,12 @@ export default function BookingPassenger() {
     };
 
     return (
-        <div className="mx-auto max-w-xl space-y-4">
-            <h1 className="text-xl font-bold">Passenger</h1>
-            <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="animate-in-up mx-auto max-w-xl space-y-5">
+            <div className="space-y-1">
+                <p className="page-eyebrow">Booking · Step 1</p>
+                <h1>Passenger</h1>
+            </div>
+            <form onSubmit={submit} className="form-card grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
                     ["First", "first", true], ["Middle", "middle"], ["Last", "last", true],
                     ["Gender", "gender", true],
@@ -82,7 +85,7 @@ export default function BookingPassenger() {
                             value={p[key]}
                             onChange={set(key)}
                             required={req}
-                            className="mt-1 w-full rounded border px-3 py-2"
+                            className="field-input"
                         />
                     </label>
                 ))}
@@ -95,7 +98,7 @@ export default function BookingPassenger() {
                             value={bd.month}
                             onChange={setBdPart("month")}
                             required
-                            className="rounded border px-3 py-2"
+                            className="field-input"
                         >
                             <option value="">Month</option>
                             {MONTHS.map((m, i) => (
@@ -106,7 +109,7 @@ export default function BookingPassenger() {
                             value={bd.day}
                             onChange={setBdPart("day")}
                             required
-                            className="rounded border px-3 py-2"
+                            className="field-input"
                         >
                             <option value="">Day</option>
                             {days.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -115,15 +118,15 @@ export default function BookingPassenger() {
                             value={bd.year}
                             onChange={setBdPart("year")}
                             required
-                            className="rounded border px-3 py-2"
+                            className="field-input"
                         >
                             <option value="">Year</option>
                             {years.map((y) => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                 </fieldset>
-                {err && <p className="sm:col-span-2 text-destructive">{err.message}</p>}
-                <button className="sm:col-span-2 rounded bg-milwaukeeBlue px-4 py-2 text-white">
+                {err && <p className="sm:col-span-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{err.message}</p>}
+                <button className="btn-primary sm:col-span-2">
                     Continue → Seat
                 </button>
             </form>

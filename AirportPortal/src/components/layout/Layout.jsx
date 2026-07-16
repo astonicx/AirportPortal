@@ -8,7 +8,10 @@ function Nav() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const link = ({ isActive }) =>
-        `px-3 py-2 rounded hover:bg-secondary ${isActive ? "font-semibold" : ""}`;
+        `relative rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${isActive
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+        }`;
 
     const onLogout = async () => {
         await logout();
@@ -16,12 +19,20 @@ function Nav() {
     };
 
     return (
-        <header className="border-b bg-background">
-            <div className="container mx-auto flex flex-wrap items-center gap-2 px-4 py-3">
-                <Link to="/" className="text-lg font-bold text-milwaukeeBlue">
-                    ✈ AirportPortal
+        <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 shadow-header backdrop-blur supports-[backdrop-filter]:bg-background/70">
+            <div className="h-1 w-full bg-gradient-to-r from-primary via-primary to-accent" />
+            <div className="container flex flex-wrap items-center gap-3 py-3">
+                <Link to="/" className="group flex items-center gap-2.5">
+                    <img
+                        src="/images/BDPA_logo.png"
+                        alt="BDPA"
+                        className="h-10 w-auto transition-transform group-hover:scale-105"
+                    />
+                    <span className="hidden text-lg font-extrabold tracking-tight sm:inline">
+                        <span className="brand-gradient">AirportPortal</span>
+                    </span>
                 </Link>
-                <nav className="ml-4 flex flex-wrap gap-1 text-sm">
+                <nav className="ml-2 hidden flex-wrap items-center gap-1 md:flex">
                     <NavLink to="/flights" className={link}>Flights</NavLink>
                     <NavLink to="/book" className={link}>Book</NavLink>
                     <NavLink to="/ticket-lookup" className={link}>Lookup</NavLink>
@@ -30,32 +41,54 @@ function Nav() {
                     {(user?.type === "admin" || user?.type === "root") && (
                         <NavLink to="/admin" className={link}>Admin</NavLink>
                     )}
+                    {user?.type === "attendant" && (
+                        <NavLink to="/attendant" className={link}>Attendant</NavLink>
+                    )}
                 </nav>
                 <div className="ml-auto flex items-center gap-2 text-sm">
                     {user ? (
                         <>
-                            <span className="text-muted-foreground">
+                            <span className="hidden text-muted-foreground sm:inline">
                                 {user.firstName} {user.lastName}
                             </span>
                             <button
                                 onClick={onLogout}
-                                className="rounded border px-3 py-1 hover:bg-secondary"
+                                className="rounded-full border border-border px-3.5 py-1.5 font-medium transition-colors hover:bg-secondary"
                             >
                                 Log out
                             </button>
                         </>
                     ) : (
                         <>
-                            <Link to="/login" className="rounded border px-3 py-1 hover:bg-secondary">Log in</Link>
+                            <Link
+                                to="/login"
+                                className="rounded-full border border-border px-3.5 py-1.5 font-medium transition-colors hover:bg-secondary"
+                            >
+                                Log in
+                            </Link>
                             <Link
                                 to="/signup"
-                                className="rounded bg-milwaukeeBlue px-3 py-1 text-white hover:opacity-90"
+                                className="rounded-full bg-primary px-4 py-1.5 font-semibold text-primary-foreground shadow-sm transition-all hover:shadow-md hover:brightness-110"
                             >
                                 Sign up
                             </Link>
                         </>
                     )}
                 </div>
+                {/* Mobile nav */}
+                <nav className="flex w-full flex-wrap items-center gap-1 md:hidden">
+                    <NavLink to="/flights" className={link}>Flights</NavLink>
+                    <NavLink to="/book" className={link}>Book</NavLink>
+                    <NavLink to="/ticket-lookup" className={link}>Lookup</NavLink>
+                    {user && <NavLink to="/dashboard" className={link}>Dashboard</NavLink>}
+                    {user && <NavLink to="/settings" className={link}>Settings</NavLink>}
+                    {(user?.type === "admin" || user?.type === "root") && (
+                        <NavLink to="/admin" className={link}>Admin</NavLink>
+                    )}
+                    {user?.type === "attendant" && (
+                        <NavLink to="/attendant" className={link}>Attendant</NavLink>
+                    )}
+                </nav>
             </div>
         </header>
     );
@@ -89,13 +122,37 @@ export default function Layout() {
     }, []);
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="flex min-h-screen flex-col">
+            <a href="#main-content" className="skip-link">
+                Skip to content
+            </a>
             <Nav />
-            <main className="flex-1 container mx-auto px-4 py-6">
+            <main
+                id="main-content"
+                key={loc.pathname}
+                className="container flex-1 animate-in-fade py-8"
+            >
                 <Outlet />
             </main>
-            <footer className="border-t bg-background py-4 text-center text-xs text-muted-foreground">
-                AirportPortal · BDPA 2026
+            <footer className="mt-8 border-t border-border/70 bg-card">
+                <div className="container flex flex-col items-center justify-between gap-3 py-6 sm:flex-row">
+                    <div className="flex items-center gap-2.5">
+                        <img
+                            src="/images/BDPA_logo.png"
+                            alt="BDPA"
+                            className="h-8 w-auto"
+                        />
+                        <span className="text-sm font-semibold">AirportPortal</span>
+                    </div>
+                    <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
+                        <Link to="/flights" className="transition-colors hover:text-foreground">Flights</Link>
+                        <Link to="/ticket-lookup" className="transition-colors hover:text-foreground">Lookup</Link>
+                        <Link to="/recover" className="transition-colors hover:text-foreground">Help</Link>
+                    </nav>
+                    <p className="text-xs text-muted-foreground">
+                        © 2026 AirportPortal · Powered by BDPA
+                    </p>
+                </div>
             </footer>
         </div>
     );

@@ -41,64 +41,105 @@ export default function Login() {
     };
 
     return (
-        <div className="mx-auto max-w-md space-y-4">
-            <h1 className="text-2xl font-bold">Log in</h1>
-            <form onSubmit={submit} className="space-y-3">
-                <label className="block text-sm">
-                    Email
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        autoComplete="email"
-                        className="mt-1 w-full rounded border px-3 py-2"
+        <div className="animate-in-up mx-auto grid max-w-4xl overflow-hidden rounded-2xl border border-border/70 bg-card shadow-elevated md:grid-cols-2">
+            {/* Brand panel */}
+            <aside className="relative hidden bg-brand-hero p-8 text-white md:flex md:flex-col md:justify-between">
+                <div className="pointer-events-none absolute inset-0 bg-brand-sheen" />
+                <div className="relative flex items-center gap-2.5">
+                    <img
+                        src="/images/BDPA_logo.png"
+                        alt="BDPA"
+                        className="h-10 w-auto rounded-lg bg-white px-2 py-1.5 shadow-sm"
                     />
-                </label>
-                <label className="block text-sm">
-                    Password
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        autoComplete="current-password"
-                        className="mt-1 w-full rounded border px-3 py-2"
-                    />
-                </label>
-                <Captcha
-                    value={captcha}
-                    onChange={setCaptcha}
-                    onChallengeChange={setExpected}
-                />
-                <label className="inline-flex items-center gap-2 text-sm">
-                    <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRemember(e.target.checked)}
-                    />
-                    Remember me
-                </label>
-                {error && (
-                    <p role="alert" className="text-sm text-destructive">
-                        {error}
+                    <span className="text-lg font-extrabold tracking-tight">AirportPortal</span>
+                </div>
+                <div className="relative space-y-3">
+                    <h2 className="text-3xl font-bold leading-tight text-white">
+                        Welcome back to the friendly skies.
+                    </h2>
+                    <p className="text-sm text-white/80">
+                        Manage bookings, check flights, and access your travel dashboard — all in
+                        one professional portal.
                     </p>
-                )}
-                <button
-                    type="submit"
-                    disabled={busy}
-                    className="w-full rounded bg-milwaukeeBlue px-4 py-2 text-white disabled:opacity-60"
-                >
-                    {busy ? "Signing in…" : "Sign in"}
-                </button>
-            </form>
-            <div className="flex justify-between text-sm">
-                <Link to="/recover" className="underline">
-                    Forgot password?
-                </Link>
-                <Link to="/signup" className="underline">
-                    Create account
-                </Link>
+                </div>
+                <p className="relative text-xs text-white/70">Powered by BDPA · 2026</p>
+            </aside>
+
+            {/* Form panel */}
+            <div className="p-8 sm:p-10">
+                <div className="mb-6 space-y-1">
+                    <h1>Log in</h1>
+                    <p className="text-sm text-muted-foreground">
+                        Enter your credentials to access your account.
+                    </p>
+                </div>
+                <form onSubmit={submit} className="space-y-4">
+                    <label className="block text-sm font-medium">
+                        Email
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            autoComplete="email"
+                            placeholder="you@example.com"
+                            className="mt-1.5 w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        />
+                    </label>
+                    <label className="block text-sm font-medium">
+                        Password
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            autoComplete="current-password"
+                            placeholder="••••••••••"
+                            className="mt-1.5 w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        />
+                    </label>
+                    <Captcha
+                        value={captcha}
+                        onChange={setCaptcha}
+                        onChallengeChange={setExpected}
+                    />
+                    <label className="inline-flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRemember(e.target.checked)}
+                            className="h-4 w-4 rounded border-input text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                        />
+                        Remember me
+                    </label>
+                    {error && (
+                        <p
+                            role="alert"
+                            className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                        >
+                            <span aria-hidden>⚠</span>
+                            <span>{error}</span>
+                        </p>
+                    )}
+                    <button
+                        type="submit"
+                        disabled={busy}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm transition-all hover:shadow-md hover:brightness-110 disabled:opacity-60"
+                    >
+                        {busy && (
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        )}
+                        {busy ? "Signing in…" : "Sign in"}
+                    </button>
+                </form>
+                <div className="mt-6 flex justify-between text-sm">
+                    <Link to="/recover" className="font-medium text-primary hover:underline">
+                        Forgot password?
+                    </Link>
+                    <Link to="/signup" className="font-medium text-primary hover:underline">
+                        Create account
+                    </Link>
+                </div>
             </div>
         </div>
     );

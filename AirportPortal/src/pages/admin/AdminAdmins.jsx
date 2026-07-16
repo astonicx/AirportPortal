@@ -49,12 +49,12 @@ export default function AdminAdmins() {
                             <input
                                 type={k === "password" ? "password" : k === "email" ? "email" : "text"}
                                 required value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-                                className="mt-1 w-full rounded border px-3 py-2"
+                                className="field-input"
                             />
                         </label>
                     ))}
                     {err && <p className="sm:col-span-2 text-destructive">{err.data?.error || err.message}</p>}
-                    <button className="sm:col-span-2 rounded bg-milwaukeeBlue px-4 py-2 text-white">Create</button>
+                    <button className="sm:col-span-2 btn-primary">Create</button>
                 </form>
             </section>
         </div>

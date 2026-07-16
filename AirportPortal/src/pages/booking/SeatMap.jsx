@@ -42,7 +42,7 @@ export default function SeatMap() {
 
     return (
         <div className="mx-auto max-w-xl space-y-4">
-            <h1 className="text-xl font-bold">Pick a seat</h1>
+            <h1>Pick a seat</h1>
             {err && <p className="text-destructive">{err.message}</p>}
             <div className="space-y-1">
                 {Object.entries(rows).map(([r, list]) => (
@@ -52,9 +52,9 @@ export default function SeatMap() {
                             const base = "h-8 w-8 rounded text-xs font-medium";
                             const color =
                                 s.state === "taken" ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                    : s.state === "locked" ? "bg-milwaukeeGold/40 cursor-not-allowed"
+                                    : s.state === "locked" ? "bg-accent/40 cursor-not-allowed"
                                         : s.state === "mine" ? "bg-green-600 text-white"
-                                            : "bg-secondary hover:bg-milwaukeeBlue hover:text-white";
+                                            : "bg-secondary hover:bg-primary hover:text-white";
                             return (
                                 <button
                                     key={s.seat}
@@ -73,7 +73,7 @@ export default function SeatMap() {
             <button
                 disabled={!booking.seat}
                 onClick={() => navigate(`/book/${id}/bags`)}
-                className="rounded bg-milwaukeeBlue px-4 py-2 text-white disabled:opacity-50"
+                className="btn-primary"
             >
                 Continue → Bags
             </button>

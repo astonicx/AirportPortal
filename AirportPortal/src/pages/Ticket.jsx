@@ -49,32 +49,29 @@ export default function Ticket() {
         : null;
 
     return (
-        <div className="mx-auto max-w-2xl space-y-4">
-            <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">Ticket {t.confirmation_code}</h1>
+        <div className="animate-in-up mx-auto max-w-2xl space-y-5">
+            <div className="flex flex-wrap items-center gap-3">
+                <h1>Ticket <span className="font-mono">{t.confirmation_code}</span></h1>
                 {direction && (
-                    <span
-                        className={`rounded px-2 py-0.5 text-xs font-medium ${direction === "Arrival"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-amber-100 text-amber-800"
-                            }`}
-                    >
+                    <span className={`pill ${direction === "Arrival" ? "pill-info" : "pill-warning"}`}>
                         {direction}
                     </span>
                 )}
             </div>
-            {msg && <p className="text-green-700">{msg}</p>}
-            <dl className="grid grid-cols-2 gap-2 text-sm">
-                <dt>Passenger</dt><dd>{t.passenger_first} {t.passenger_last}</dd>
-                <dt>Seat</dt><dd>{t.seat}</dd>
-                <dt>Status</dt><dd>{t.status}</dd>
-                <dt>Total</dt><dd>${(t.total_cents / 100).toFixed(2)}</dd>
-                <dt>Flight</dt><dd>{f ? `${f.airline} ${f.flightNumber}` : t.flight_id}</dd>
-                <dt>Departs</dt><dd>{fmtDateTime(departValue)}</dd>
-                <dt>Gate</dt><dd>{f?.gate || "—"}</dd>
-            </dl>
+            {msg && <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">{msg}</p>}
+            <div className="surface-card p-6">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div><dt className="text-muted-foreground">Passenger</dt><dd className="font-medium">{t.passenger_first} {t.passenger_last}</dd></div>
+                    <div><dt className="text-muted-foreground">Seat</dt><dd className="font-medium">{t.seat}</dd></div>
+                    <div><dt className="text-muted-foreground">Status</dt><dd className="font-medium capitalize">{t.status}</dd></div>
+                    <div><dt className="text-muted-foreground">Total</dt><dd className="font-semibold text-primary">${(t.total_cents / 100).toFixed(2)}</dd></div>
+                    <div><dt className="text-muted-foreground">Flight</dt><dd className="font-medium">{f ? `${f.airline} ${f.flightNumber}` : t.flight_id}</dd></div>
+                    <div><dt className="text-muted-foreground">Departs</dt><dd className="font-medium">{fmtDateTime(departValue)}</dd></div>
+                    <div><dt className="text-muted-foreground">Gate</dt><dd className="font-medium">{f?.gate || "—"}</dd></div>
+                </dl>
+            </div>
             {t.status === "active" && (
-                <button onClick={cancel} className="rounded border border-destructive px-4 py-2 text-destructive">
+                <button onClick={cancel} className="rounded-lg border border-destructive px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground">
                     Cancel ticket
                 </button>
             )}

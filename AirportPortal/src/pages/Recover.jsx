@@ -64,20 +64,26 @@ export default function Recover() {
 
     if (done) {
         return (
-            <div className="mx-auto max-w-md space-y-4">
-                <h1 className="text-2xl font-bold">Password reset</h1>
-                <p>You may now log in with your new password.</p>
-                <a href="/login" className="underline">Go to login</a>
+            <div className="animate-in-up mx-auto max-w-md py-12">
+                <div className="form-card space-y-4 text-center">
+                    <p className="page-eyebrow">Account recovery</p>
+                    <h1>Password reset</h1>
+                    <p className="text-sm text-muted-foreground">You may now log in with your new password.</p>
+                    <a href="/login" className="btn-primary w-full">Go to login</a>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="mx-auto max-w-md space-y-4">
-            <h1 className="text-2xl font-bold">Recover account</h1>
+        <div className="animate-in-up mx-auto max-w-md space-y-6">
+            <div className="space-y-1 text-center">
+                <p className="page-eyebrow">Step {step} of 3</p>
+                <h1>Recover account</h1>
+            </div>
             {step === 1 && (
-                <form onSubmit={init} className="space-y-3">
-                    <label className="block text-sm">
+                <form onSubmit={init} className="form-card space-y-4">
+                    <label className="field-label">
                         First name
                         <input
                             type="text"
@@ -85,10 +91,10 @@ export default function Recover() {
                             onChange={(e) => setFirstName(e.target.value)}
                             required
                             autoComplete="given-name"
-                            className="mt-1 w-full rounded border px-3 py-2"
+                            className="field-input"
                         />
                     </label>
-                    <label className="block text-sm">
+                    <label className="field-label">
                         Last name
                         <input
                             type="text"
@@ -96,10 +102,10 @@ export default function Recover() {
                             onChange={(e) => setLastName(e.target.value)}
                             required
                             autoComplete="family-name"
-                            className="mt-1 w-full rounded border px-3 py-2"
+                            className="field-input"
                         />
                     </label>
-                    <label className="block text-sm">
+                    <label className="field-label">
                         Date of birth (YYYY-MM-DD)
                         <input
                             type="text"
@@ -108,18 +114,18 @@ export default function Recover() {
                             required
                             placeholder="1990-05-15"
                             autoComplete="bday"
-                            className="mt-1 w-full rounded border px-3 py-2"
+                            className="field-input"
                         />
                     </label>
-                    <button className="w-full rounded bg-milwaukeeBlue px-4 py-2 text-white">
+                    <button className="btn-primary w-full">
                         Continue
                     </button>
                 </form>
             )}
             {step === 2 && (
-                <form onSubmit={answer} className="space-y-3">
+                <form onSubmit={answer} className="form-card space-y-4">
                     {questions.map((q, i) => (
-                        <label key={i} className="block text-sm">
+                        <label key={i} className="field-label">
                             {q}
                             <input
                                 type="text"
@@ -130,34 +136,34 @@ export default function Recover() {
                                     setAnswers(next);
                                 }}
                                 required
-                                className="mt-1 w-full rounded border px-3 py-2"
+                                className="field-input"
                             />
                         </label>
                     ))}
-                    <button className="w-full rounded bg-milwaukeeBlue px-4 py-2 text-white">
+                    <button className="btn-primary w-full">
                         Verify
                     </button>
                 </form>
             )}
             {step === 3 && (
-                <form onSubmit={reset} className="space-y-3">
-                    <label className="block text-sm">
+                <form onSubmit={reset} className="form-card space-y-4">
+                    <label className="field-label">
                         New password
                         <input
                             type="password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             required
-                            className="mt-1 w-full rounded border px-3 py-2"
+                            className="field-input"
                         />
                     </label>
                     <PasswordStrengthMeter password={newPassword} />
-                    <button className="w-full rounded bg-milwaukeeBlue px-4 py-2 text-white">
+                    <button className="btn-primary w-full">
                         Reset password
                     </button>
                 </form>
             )}
-            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            {error && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
         </div>
     );
 }

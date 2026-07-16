@@ -36,9 +36,14 @@ export default function Flights() {
     };
 
     return (
-        <div className="space-y-4">
-            <h1 className="text-2xl font-bold">Flights</h1>
-            <div className="flex flex-wrap items-center gap-3">
+        <div className="animate-in-up space-y-5">
+            <div className="space-y-1">
+                <h1>Flights</h1>
+                <p className="text-sm text-muted-foreground">
+                    Live departures and arrivals, updated automatically.
+                </p>
+            </div>
+            <div className="surface-card flex flex-wrap items-center gap-3 p-3">
                 <Tabs
                     value={type}
                     onValueChange={(v) => { setType(v); setPage(1); }}
@@ -48,14 +53,19 @@ export default function Flights() {
                         <TabsTrigger value="arrival">Arrivals</TabsTrigger>
                     </TabsList>
                 </Tabs>
-                <input
-                    type="search"
-                    placeholder="Search flight, airline, gate…"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    className="rounded border px-3 py-2"
-                    aria-label="Search flights"
-                />
+                <div className="relative ml-auto w-full sm:w-72">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        🔍
+                    </span>
+                    <input
+                        type="search"
+                        placeholder="Search flight, airline, gate…"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm shadow-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        aria-label="Search flights"
+                    />
+                </div>
             </div>
 
             {loading && <Spinner />}
@@ -64,12 +74,14 @@ export default function Flights() {
             {data && (
                 <>
                     {/* Desktop / tablet table with clickable sortable headers */}
-                    <FlightTable
-                        items={data.items}
-                        sortBy={sortBy}
-                        sortDir={sortDir}
-                        onSort={onSort}
-                    />
+                    <div className="surface-card overflow-hidden">
+                        <FlightTable
+                            items={data.items}
+                            sortBy={sortBy}
+                            sortDir={sortDir}
+                            onSort={onSort}
+                        />
+                    </div>
 
                     {/* Mobile cards */}
                     <div className="grid grid-cols-1 gap-3 md:hidden">
@@ -81,21 +93,21 @@ export default function Flights() {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center gap-3">
                         <button
                             disabled={page <= 1}
                             onClick={() => setPage(page - 1)}
-                            className="rounded border px-3 py-1 disabled:opacity-50"
+                            className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50"
                         >
-                            Prev
+                            ← Prev
                         </button>
-                        <span className="text-sm">Page {data.page}</span>
+                        <span className="text-sm text-muted-foreground">Page {data.page}</span>
                         <button
                             disabled={page * data.pageSize >= data.total}
                             onClick={() => setPage(page + 1)}
-                            className="rounded border px-3 py-1 disabled:opacity-50"
+                            className="rounded-lg border border-border px-4 py-1.5 text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50"
                         >
-                            Next
+                            Next →
                         </button>
                     </div>
                 </>

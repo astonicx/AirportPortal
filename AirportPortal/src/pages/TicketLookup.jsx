@@ -12,28 +12,33 @@ export default function TicketLookup() {
     };
 
     return (
-        <div className="mx-auto max-w-md space-y-4">
-            <h1 className="text-2xl font-bold">Look up a ticket</h1>
-            <form onSubmit={submit} className="space-y-3">
-                <label className="block text-sm">
+        <div className="animate-in-up mx-auto max-w-md space-y-6">
+            <div className="space-y-1 text-center">
+                <p className="page-eyebrow">Manage travel</p>
+                <h1>Look up a ticket</h1>
+                <p className="text-sm text-muted-foreground">
+                    Enter the passenger last name and confirmation code from your booking.
+                </p>
+            </div>
+            <form onSubmit={submit} className="form-card space-y-4">
+                <label className="field-label">
                     Last name
                     <input
                         type="text" required value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        className="mt-1 w-full rounded border px-3 py-2"
+                        className="field-input"
                     />
                 </label>
-                <label className="block text-sm">
+                <label className="field-label">
                     Confirmation code
                     <input
                         type="text" required value={code}
                         onChange={(e) => setCode(e.target.value.toUpperCase())}
-                        className="mt-1 w-full rounded border px-3 py-2"
+                        placeholder="e.g. AB12CD"
+                        className="field-input font-mono tracking-wider"
                     />
                 </label>
-                <button className="w-full rounded bg-milwaukeeBlue px-4 py-2 text-white">
-                    Find ticket
-                </button>
+                <button className="btn-primary w-full">Find ticket</button>
             </form>
         </div>
     );
