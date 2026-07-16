@@ -75,7 +75,7 @@ function normalizeFlight(f) {
             f.status === "scheduled" &&
             landsAtHome(f) &&
             new Date(f.arriveAtReceiver || 0).getTime() >
-                Date.now() + ADVANCE_BOOKING_HOURS * 3600 * 1000,
+            Date.now() + ADVANCE_BOOKING_HOURS * 3600 * 1000,
         time,
         timeMs: whenMs || 0,
         seatPrice: f.seatPrice ?? f.seat_price ?? 0,
