@@ -7,6 +7,14 @@ export function useAutoLogout(minutes, onLogout) {
 
     useEffect(() => {
         if (!minutes || minutes <= 0) return;
+        // Skip the idle timer entirely when the user opted into "remember me".
+        let remembered = false;
+        try {
+            remembered = localStorage.getItem("rememberMe") === "1";
+        } catch {
+            remembered = false;
+        }
+        if (remembered) return;
         const ms = minutes * 60_000;
         const reset = () => {
             clearTimeout(timer.current);

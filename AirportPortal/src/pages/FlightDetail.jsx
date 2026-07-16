@@ -1,22 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "@/lib/api";
+import { useLiveResource } from "@/hooks/useLiveResource";
 import Spinner from "@/components/Spinner";
 
 export default function FlightDetail() {
     const { id } = useParams();
-    const [flight, setFlight] = useState(null);
     const [homeAirport, setHomeAirport] = useState(null);
-    const [err, setErr] = useState(null);
 
-    useEffect(() => {
-        let cancelled = false;
-        api
-            .get(`/api/flights/${id}`)
-            .then((f) => !cancelled && setFlight(f))
-            .catch((e) => !cancelled && setErr(e));
-        return () => { cancelled = true; };
-    }, [id]);
+    // Live-poll the flight so gate/status changes appear without a manual reload.
+    const { data: flight, error: err } = useLiveResource(`/api/flights/${id}`, {
+        intervalMs: 30_000,
+    });
 
     useEffect(() => {
         let cancelled = false;

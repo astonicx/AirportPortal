@@ -1,108 +1,86 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLiveResource } from "@/hooks/useLiveResource";
+import FlightTable from "@/components/FlightTable";
+import FlightCard from "@/components/FlightCard";
 import Spinner from "@/components/Spinner";
-
-const SORT_FIELDS = ["flightNumber", "airline", "airport", "city", "time", "gate"];
 
 export default function Flights() {
     const [type, setType] = useState("departure");
     const [page, setPage] = useState(1);
     const [q, setQ] = useState("");
+    const [debouncedQ, setDebouncedQ] = useState("");
     const [sortBy, setSortBy] = useState("time");
     const [sortDir, setSortDir] = useState("asc");
-    const path = `/api/flights?type=${type}&page=${page}&pageSize=20&q=${encodeURIComponent(q)}&sortBy=${sortBy}&sortDir=${sortDir}`;
+
+    // Debounce the free-text search so we don't refetch on every keystroke.
+    useEffect(() => {
+        const t = setTimeout(() => {
+            setDebouncedQ(q);
+            setPage(1);
+        }, 350);
+        return () => clearTimeout(t);
+    }, [q]);
+
+    const path = `/api/flights?type=${type}&page=${page}&pageSize=20&q=${encodeURIComponent(debouncedQ)}&sortBy=${sortBy}&sortDir=${sortDir}`;
     const { data, error, loading } = useLiveResource(path, { intervalMs: 60_000 });
+
+    const onSort = (key) => {
+        if (sortBy === key) {
+            setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        } else {
+            setSortBy(key);
+            setSortDir("asc");
+        }
+        setPage(1);
+    };
 
     return (
         <div className="space-y-4">
             <h1 className="text-2xl font-bold">Flights</h1>
-            <div className="flex flex-wrap items-center gap-2">
-                <select
+            <div className="flex flex-wrap items-center gap-3">
+                <Tabs
                     value={type}
-                    onChange={(e) => { setType(e.target.value); setPage(1); }}
-                    className="rounded border px-3 py-2"
+                    onValueChange={(v) => { setType(v); setPage(1); }}
                 >
-                    <option value="departure">Departures</option>
-                    <option value="arrival">Arrivals</option>
-                </select>
+                    <TabsList>
+                        <TabsTrigger value="departure">Departures</TabsTrigger>
+                        <TabsTrigger value="arrival">Arrivals</TabsTrigger>
+                    </TabsList>
+                </Tabs>
                 <input
                     type="search"
-                    placeholder="Search…"
+                    placeholder="Search flight, airline, gate…"
                     value={q}
-                    onChange={(e) => { setQ(e.target.value); setPage(1); }}
+                    onChange={(e) => setQ(e.target.value)}
                     className="rounded border px-3 py-2"
+                    aria-label="Search flights"
                 />
-                <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="rounded border px-3 py-2"
-                >
-                    {SORT_FIELDS.map((f) => <option key={f} value={f}>{f}</option>)}
-                </select>
-                <button
-                    onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
-                    className="rounded border px-3 py-2"
-                >
-                    {sortDir === "asc" ? "▲" : "▼"}
-                </button>
             </div>
+
             {loading && <Spinner />}
             {error && <p className="text-destructive">{error.message}</p>}
+
             {data && (
                 <>
-                    <div className="overflow-x-auto rounded border">
-                        <table className="w-full text-sm">
-                            <thead className="bg-secondary">
-                                <tr>
-                                    <th className="px-3 py-2 text-left">Flight</th>
-                                    <th className="px-3 py-2 text-left">Airline</th>
-                                    <th className="px-3 py-2 text-left">From</th>
-                                    <th className="px-3 py-2 text-left">To</th>
-                                    <th className="px-3 py-2 text-left">Time</th>
-                                    <th className="px-3 py-2 text-left">Gate</th>
-                                    <th className="px-3 py-2 text-left">Status</th>
-                                    <th className="px-3 py-2 text-left">Bookable</th>
-                                    <th className="px-3 py-2"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {data.items.map((f) => (
-                                    <tr key={f.flight_id || f.id} className="border-t">
-                                        <td className="px-3 py-2">{f.flightNumber}</td>
-                                        <td className="px-3 py-2">{f.airline}</td>
-                                        <td className="px-3 py-2">{f.from || "\u2014"}</td>
-                                        <td className="px-3 py-2">{f.to || "\u2014"}</td>
-                                        <td className="px-3 py-2">{f.time}</td>
-                                        <td className="px-3 py-2">{f.gate}</td>
-                                        <td className="px-3 py-2">{f.status}</td>
-                                        <td className="px-3 py-2">
-                                            {f.canBook ? (
-                                                <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                                                    Bookable
-                                                </span>
-                                            ) : (
-                                                <span className="rounded bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                                                    Not bookable
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            <Link
-                                                to={`/flights/${f.flight_id || f.id}`}
-                                                className="underline"
-                                            >
-                                                Details
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {!data.items.length && (
-                                    <tr><td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">No flights.</td></tr>
-                                )}
-                            </tbody>
-                        </table>
+                    {/* Desktop / tablet table with clickable sortable headers */}
+                    <FlightTable
+                        items={data.items}
+                        sortBy={sortBy}
+                        sortDir={sortDir}
+                        onSort={onSort}
+                    />
+
+                    {/* Mobile cards */}
+                    <div className="grid grid-cols-1 gap-3 md:hidden">
+                        {data.items.map((f) => (
+                            <FlightCard key={f.flight_id || f.id} flight={f} />
+                        ))}
+                        {!data.items.length && (
+                            <p className="text-center text-muted-foreground">No flights.</p>
+                        )}
                     </div>
+
                     <div className="flex items-center gap-2">
                         <button
                             disabled={page <= 1}

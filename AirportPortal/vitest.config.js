@@ -1,5 +1,6 @@
 "use strict";
-require("dotenv").config();
+// NOTE: do NOT load dotenv here — letting .env (BDPA_BASE_URL, etc.) leak into
+// the test environment breaks MSW interception in tests/setup/backend.setup.mjs.
 const { defineConfig } = require("vitest/config");
 
 module.exports = defineConfig({

@@ -14,6 +14,7 @@ import Ticket from "@/pages/Ticket";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import CompleteProfile from "@/pages/CompleteProfile";
+import NotFound from "@/pages/NotFound";
 
 import BookingSearch from "@/pages/booking/Search";
 import Passenger from "@/pages/booking/Passenger";
@@ -48,10 +49,14 @@ export default function App() {
                     <Route path="flights" element={<Flights />} />
                     <Route path="flights/:id" element={<FlightDetail />} />
                     <Route path="ticket-lookup" element={<TicketLookup />} />
+                    {/* Spec route name */}
+                    <Route path="ticket/:code" element={<Ticket />} />
+                    {/* Backwards-compatible alias */}
                     <Route path="tickets/:code" element={<Ticket />} />
 
                     <Route element={<BookingShell />}>
                         <Route path="book" element={<BookingSearch />} />
+                        <Route path="book/:id" element={<Navigate to="passenger" replace />} />
                         <Route path="book/:id/passenger" element={<Passenger />} />
                         <Route path="book/:id/seat" element={<SeatMap />} />
                         <Route path="book/:id/bags" element={<Bags />} />
@@ -63,6 +68,12 @@ export default function App() {
                         path="dashboard"
                         element={<RequireAuth><Dashboard /></RequireAuth>}
                     />
+                    {/* Spec route name */}
+                    <Route
+                        path="dashboard/settings"
+                        element={<RequireAuth><Settings /></RequireAuth>}
+                    />
+                    {/* Backwards-compatible alias */}
                     <Route
                         path="settings"
                         element={<RequireAuth><Settings /></RequireAuth>}
@@ -82,7 +93,7 @@ export default function App() {
                         <Route path="admins" element={<AdminAdmins />} />
                     </Route>
 
-                    <Route path="*" element={<Navigate to="/flights" replace />} />
+                    <Route path="*" element={<NotFound />} />
                 </Route>
             </Routes>
         </ErrorBoundary>

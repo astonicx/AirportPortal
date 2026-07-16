@@ -14,7 +14,8 @@ await setupTestDatabase({ clean: true, withSeed: false });
 process.env.NODE_ENV = process.env.NODE_ENV || "test";
 process.env.CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://127.0.0.1:3000";
 process.env.SESSION_COOKIE_SECRET = process.env.SESSION_COOKIE_SECRET || "test-session-secret";
-process.env.BDPA_BASE_URL = process.env.BDPA_BASE_URL || "http://127.0.0.1:4010";
+// Force the upstream base URL to the MSW listener regardless of any leaked .env.
+process.env.BDPA_BASE_URL = "http://127.0.0.1:4010";
 process.env.BEARER_TOKEN = process.env.BEARER_TOKEN || "test-bearer-token";
 
 beforeAll(() => {

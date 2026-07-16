@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { useBooking } from "@/context/BookingContext";
 import { api } from "@/lib/api";
 
@@ -32,7 +33,8 @@ export default function Review() {
                 checkedCount: booking.checkedCount,
             });
             reset();
-            navigate(`/tickets/${r.confirmationCode}?last=${encodeURIComponent(booking.passenger.last)}`);
+            toast.success(`Booking confirmed — confirmation ${r.confirmationCode}`);
+            navigate(`/ticket/${r.confirmationCode}?last=${encodeURIComponent(booking.passenger.last)}`);
         } catch (e) { setErr(e); }
         finally { setBusy(false); }
     };

@@ -7,7 +7,7 @@ module.exports = function errorHandler(err, req, res, _next) {
         requestId: req.id,
     };
     if (err.name === "ZodError") payload.issues = err.issues;
-    if (process.env.NODE_ENV !== "production") payload.stack = err.stack;
+    // Never include the raw stack trace in HTTP responses — log it instead.
     console.error(`[${req.id}]`, err);
     res.status(status).json(payload);
 };

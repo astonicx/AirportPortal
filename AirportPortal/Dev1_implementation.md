@@ -169,21 +169,21 @@ module.exports = { db, runMigrations };
 ```sql
 CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  type TEXT NOT NULL CHECK(type IN ('customer','admin','root')),
-  title TEXT, first_name TEXT NOT NULL, middle_name TEXT, last_name TEXT NOT NULL,
-  suffix TEXT, dob TEXT, gender TEXT,
-  address1 TEXT, city TEXT, state TEXT, zip TEXT, country TEXT,
-  phone TEXT, email TEXT UNIQUE,
-  login_disambiguator TEXT,
-  password_hash TEXT NOT NULL,             -- argon2id PHC string (salt embedded)
-  default_sort TEXT DEFAULT 'time',
-  auto_logout_minutes INTEGER DEFAULT 15,
-  must_complete_profile INTEGER DEFAULT 0,
-  must_change_password INTEGER DEFAULT 0,
-  last_login_ip TEXT, last_login_datetime TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE UNIQUE INDEX ux_users_name_disamb ON users(first_name, last_name, login_disambiguator);
+    type TEXT NOT NULL CHECK(type IN ('customer','admin','root')),
+      title TEXT, first_name TEXT NOT NULL, middle_name TEXT, last_name TEXT NOT NULL,
+        suffix TEXT, dob TEXT, gender TEXT,
+          address1 TEXT, city TEXT, state TEXT, zip TEXT, country TEXT,
+            phone TEXT, email TEXT UNIQUE,
+              login_disambiguator TEXT,
+                password_hash TEXT NOT NULL,             -- argon2id PHC string (salt embedded)
+                  default_sort TEXT DEFAULT 'time',
+                    auto_logout_minutes INTEGER DEFAULT 15,
+                      must_complete_profile INTEGER DEFAULT 0,
+                        must_change_password INTEGER DEFAULT 0,
+                          last_login_ip TEXT, last_login_datetime TEXT,
+                            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                            );
+                            CREATE UNIQUE INDEX ux_users_name_disamb ON users(first_name, last_name, login_disambiguator);
 
 CREATE TABLE user_login_audit (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

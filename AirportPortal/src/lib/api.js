@@ -18,6 +18,18 @@ async function request(path, { method = "GET", body, headers = {}, signal } = {}
         data = text;
     }
     if (!res.ok) {
+        // 555 is the BDPA upstream's "try again" signal — surface a friendly toast.
+        if (res.status === 555) {
+            window.dispatchEvent(
+                new CustomEvent("toast", {
+                    detail: {
+                        title: "BDPA API hiccup",
+                        description: "The flight service is busy — retrying…",
+                        variant: "destructive",
+                    },
+                })
+            );
+        }
         const err = new Error(data?.error || res.statusText || "Request failed");
         err.status = res.status;
         err.data = data;

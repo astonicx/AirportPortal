@@ -7,6 +7,17 @@ const { requireAdmin } = require("../middleware/auth");
 
 router.use(requireAdmin);
 
+function audit(req, action, targetId, payload) {
+    try {
+        db.prepare(
+            `INSERT INTO admin_audit (admin_id, action, target_type, target_id, payload_json)
+             VALUES (?, ?, 'customer', ?, ?)`
+        ).run(req.user.id, action, String(targetId), JSON.stringify(payload || {}));
+    } catch {
+        /* audit best-effort */
+    }
+}
+
 function statsWindow(label, sinceModifier) {
     const where = sinceModifier
         ? `WHERE booked_at >= datetime('now', '${sinceModifier}')`
@@ -64,6 +75,7 @@ router.post("/customers", async (req, res, next) => {
          VALUES ('customer', ?, ?, ?, ?, 1, 1)`
             )
             .run(data.first_name, data.last_name, data.email, hash);
+        audit(req, "create", info.lastInsertRowid, { email: data.email });
         res.status(201).json({ id: info.lastInsertRowid });
     } catch (e) {
         next(e);
@@ -99,6 +111,7 @@ router.patch("/customers/:id", (req, res) => {
     if (!sets.length) return res.json({ ok: true });
     vals.push(id);
     db.prepare(`UPDATE users SET ${sets.join(",")} WHERE id=?`).run(...vals);
+    audit(req, "update", id, req.body);
     res.json({ ok: true });
 });
 
@@ -110,24 +123,49 @@ router.delete("/customers/:id", (req, res) => {
     }
     db.prepare("UPDATE tickets SET user_id=NULL WHERE user_id=?").run(id);
     db.prepare("DELETE FROM users WHERE id=?").run(id);
+    audit(req, "delete", id, {});
     res.json({ ok: true });
 });
 
 // ── Tickets ─────────────────────────────────────────────────────────────────
+// Search across ticket fields AND the joined cached flight payload so admins
+// can filter by airline, flight number, route, gate, etc.
 router.get("/tickets", (req, res) => {
     const q = (req.query.q || "").toLowerCase();
     const rows = db
-        .prepare("SELECT * FROM tickets ORDER BY booked_at DESC LIMIT 500")
-        .all();
-    const filtered = q
-        ? rows.filter((r) =>
-            Object.values(r).some((v) =>
-                String(v ?? "")
-                    .toLowerCase()
-                    .includes(q)
-            )
+        .prepare(
+            `SELECT t.*, fc.payload_json AS flight_json
+             FROM tickets t
+             LEFT JOIN flight_cache fc ON fc.flight_id = t.flight_id
+             ORDER BY t.booked_at DESC
+             LIMIT 500`
         )
-        : rows;
+        .all();
+    const decorated = rows.map((r) => {
+        let flight = null;
+        if (r.flight_json) {
+            try {
+                flight = JSON.parse(r.flight_json);
+            } catch {
+                /* ignore */
+            }
+        }
+        const { flight_json: _omit, ...rest } = r;
+        return { ...rest, flight };
+    });
+    const filtered = q
+        ? decorated.filter((r) => {
+            const ticketHit = Object.values(r).some(
+                (v) => typeof v !== "object" && String(v ?? "").toLowerCase().includes(q)
+            );
+            const flightHit =
+                r.flight &&
+                Object.values(r.flight).some(
+                    (v) => typeof v !== "object" && String(v ?? "").toLowerCase().includes(q)
+                );
+            return ticketHit || flightHit;
+        })
+        : decorated;
     res.json(filtered);
 });
 

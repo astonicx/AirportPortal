@@ -68,7 +68,8 @@ router.post("/", async (req, res, next) => {
         const lock = db
             .prepare("SELECT * FROM seat_locks WHERE flight_id=? AND seat=?")
             .get(data.flightId, data.seat);
-        if (!lock || lock.session_id !== req.bookingSessionId) {
+        const ownerId = req.session?.id || req.bookingSessionId || null;
+        if (!lock || !ownerId || lock.session_id !== ownerId) {
             return res.status(409).json({ error: "Seat lock not owned" });
         }
 

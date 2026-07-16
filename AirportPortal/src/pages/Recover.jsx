@@ -4,7 +4,9 @@ import PasswordStrengthMeter, { strengthOf } from "@/components/PasswordStrength
 
 export default function Recover() {
     const [step, setStep] = useState(1);
-    const [email, setEmail] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [dob, setDob] = useState("");
     const [userId, setUserId] = useState(null);
     const [questions, setQuestions] = useState([]);
     const [answers, setAnswers] = useState([]);
@@ -17,7 +19,7 @@ export default function Recover() {
         e.preventDefault();
         setError(null);
         try {
-            const r = await api.post("/api/auth/recover/init", { email });
+            const r = await api.post("/api/auth/recover/init", { firstName, lastName, dob });
             setUserId(r.userId);
             setQuestions(r.questions);
             setAnswers(r.questions.map(() => ""));
@@ -52,7 +54,7 @@ export default function Recover() {
         try {
             await api.post("/api/auth/recover/reset", {
                 resetToken,
-                newPassword,
+                password: newPassword,
             });
             setDone(true);
         } catch (err) {
@@ -76,12 +78,36 @@ export default function Recover() {
             {step === 1 && (
                 <form onSubmit={init} className="space-y-3">
                     <label className="block text-sm">
-                        Email
+                        First name
                         <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            type="text"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
                             required
+                            autoComplete="given-name"
+                            className="mt-1 w-full rounded border px-3 py-2"
+                        />
+                    </label>
+                    <label className="block text-sm">
+                        Last name
+                        <input
+                            type="text"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            required
+                            autoComplete="family-name"
+                            className="mt-1 w-full rounded border px-3 py-2"
+                        />
+                    </label>
+                    <label className="block text-sm">
+                        Date of birth (YYYY-MM-DD)
+                        <input
+                            type="text"
+                            value={dob}
+                            onChange={(e) => setDob(e.target.value)}
+                            required
+                            placeholder="1990-05-15"
+                            autoComplete="bday"
                             className="mt-1 w-full rounded border px-3 py-2"
                         />
                     </label>

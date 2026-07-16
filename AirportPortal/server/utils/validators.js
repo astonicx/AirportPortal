@@ -25,13 +25,31 @@ const signupSchema = z.object({
 });
 
 const loginSchema = z.object({
+    firstName: z.string().min(1),
+    lastName: z.string().min(1),
+    password: z.string().min(1),
+    disambiguator: z.string().optional(),
+    rememberMe: z.boolean().optional(),
+    // Captcha fields are accepted but not strictly required (the front-end
+    // sends them; the route verifies when both are present).
+    captchaAnswer: z.string().optional(),
+    captchaExpected: z.string().optional(),
+});
+
+// Alternate login shape used by the email-based login UI. The route picks this
+// schema when an `email` field is present on the request body.
+const emailLoginSchema = z.object({
     email: z.string().email(),
     password: z.string().min(1),
     rememberMe: z.boolean().optional(),
+    captchaAnswer: z.string().optional(),
+    captchaExpected: z.string().optional(),
 });
 
 const recoverInitSchema = z.object({
-    email: z.string().email(),
+    firstName: z.string(),
+    lastName: z.string(),
+    dob: z.string(),
 });
 const recoverAnswerSchema = z.object({
     userId: z.number(),
@@ -39,12 +57,13 @@ const recoverAnswerSchema = z.object({
 });
 const recoverResetSchema = z.object({
     resetToken: z.string().min(10),
-    newPassword: z.string(),
+    password: z.string(),
 });
 
 module.exports = {
     signupSchema,
     loginSchema,
+    emailLoginSchema,
     recoverInitSchema,
     recoverAnswerSchema,
     recoverResetSchema,

@@ -28,6 +28,12 @@ export function AuthProvider({ children }) {
             password,
             rememberMe,
         });
+        // Persist the choice so useAutoLogout can skip the idle timer when set.
+        try {
+            localStorage.setItem("rememberMe", rememberMe ? "1" : "0");
+        } catch {
+            /* ignore storage errors */
+        }
         await refresh();
     };
     const logout = async () => {

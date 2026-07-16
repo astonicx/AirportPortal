@@ -27,6 +27,14 @@ export default function Payment() {
     return (
         <div className="mx-auto max-w-xl space-y-4">
             <h1 className="text-xl font-bold">Payment</h1>
+            <div
+                role="alert"
+                className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            >
+                <strong>Demo only — never enter real card data.</strong> This is a
+                practice portal. Do not type a real credit card number, CVC, or billing
+                details. Use placeholder values such as 4111 1111 1111 1111.
+            </div>
             <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block text-sm sm:col-span-2">
                     Card number

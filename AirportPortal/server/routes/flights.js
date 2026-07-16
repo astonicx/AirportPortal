@@ -121,9 +121,10 @@ router.get("/", async (req, res, next) => {
         for (const f of flights) putCached(f.flight_id || f.id, f);
 
         // The upstream `type` filter is not authoritative (it returns both
-        // arrivals and departures), so filter locally as well.
+        // arrivals and departures), so filter locally as well. Flights with no
+        // `type` field (e.g. seeded from local cache) pass through.
         flights = flights
-            .filter((f) => f.type === type)
+            .filter((f) => !f.type || f.type === type)
             .filter((f) => f.status !== "past")
             .map(normalizeFlight)
             .filter((f) => matchesQuery(f, q));
@@ -343,9 +344,16 @@ router.get("/:id/seats", (req, res) => {
 });
 
 // ── POST /api/flights/:id/seats/lock ────────────────────────────────────────
-// Open to guests: unauthenticated users are allowed to book, so seat-lock
-// ownership is keyed on the anonymous booking session id.
+// Requires a session: authenticated users use req.session.id; guests use the
+// anonymous bsid set by the bookingSession middleware. If neither is present,
+// the request is unauthenticated.
+function lockSessionId(req) {
+    return req.session?.id || req.bookingSessionId || null;
+}
+
 router.post("/:id/seats/lock", (req, res) => {
+    const sessionId = lockSessionId(req);
+    if (!sessionId) return res.status(401).json({ error: "Unauthorized" });
     const { seat } = req.body;
     if (!SEATS.includes(seat)) {
         return res.status(400).json({ error: "Invalid seat" });
@@ -353,12 +361,12 @@ router.post("/:id/seats/lock", (req, res) => {
     const expires = new Date(Date.now() + LOCK_MIN * 60_000).toISOString();
     db.prepare(
         "DELETE FROM seat_locks WHERE flight_id=? AND session_id=?"
-    ).run(req.params.id, req.bookingSessionId);
+    ).run(req.params.id, sessionId);
     try {
         db.prepare(
             `INSERT INTO seat_locks (flight_id, seat, session_id, locked_until)
        VALUES (?, ?, ?, ?)`
-        ).run(req.params.id, seat, req.bookingSessionId, expires);
+        ).run(req.params.id, seat, sessionId, expires);
         res.json({ ok: true, lockedUntil: expires });
     } catch {
         res.status(409).json({ error: "Seat already locked" });
@@ -367,9 +375,11 @@ router.post("/:id/seats/lock", (req, res) => {
 
 // ── DELETE /api/flights/:id/seats/lock ──────────────────────────────────────
 router.delete("/:id/seats/lock", (req, res) => {
+    const sessionId = lockSessionId(req);
+    if (!sessionId) return res.status(401).json({ error: "Unauthorized" });
     db.prepare(
         "DELETE FROM seat_locks WHERE flight_id=? AND session_id=?"
-    ).run(req.params.id, req.bookingSessionId);
+    ).run(req.params.id, sessionId);
     res.json({ ok: true });
 });
 

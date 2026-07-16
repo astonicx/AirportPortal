@@ -12,6 +12,9 @@ export default function Settings() {
     const [cards, setCards] = useState([]);
     const [msg, setMsg] = useState(null);
     const [err, setErr] = useState(null);
+    const [claim, setClaim] = useState({ lastName: "", confirmation: "" });
+    const [claimMsg, setClaimMsg] = useState(null);
+    const [claimErr, setClaimErr] = useState(null);
 
     useEffect(() => {
         if (user) {
@@ -43,8 +46,19 @@ export default function Settings() {
         setCards(cards.filter((c) => c.id !== id));
     };
 
+    const claimTicket = async (e) => {
+        e.preventDefault();
+        setClaimMsg(null); setClaimErr(null);
+        try {
+            await api.post("/api/me/claim-ticket", claim);
+            setClaimMsg("Ticket claimed and added to your account.");
+            setClaim({ lastName: "", confirmation: "" });
+        } catch (e) { setClaimErr(e); }
+    };
+
     const deleteAccount = async () => {
-        if (!confirm("Permanently delete your account?")) return;
+        if (!confirm("Permanently delete your account? This cannot be undone.")) return;
+        if (!confirm("Are you absolutely sure? All your tickets and data will be erased.")) return;
         await api.del("/api/me");
         window.location.href = "/";
     };
@@ -68,14 +82,43 @@ export default function Settings() {
                     </label>
                 ))}
                 <label className="block text-sm">
-                    Auto-logout (minutes; 0 = off)
-                    <input type="number" value={form.auto_logout_minutes} onChange={set("auto_logout_minutes")}
-                        className="mt-1 w-full rounded border px-3 py-2" />
+                    Auto-logout
+                    <select value={form.auto_logout_minutes} onChange={set("auto_logout_minutes")}
+                        className="mt-1 w-full rounded border px-3 py-2">
+                        <option value={0}>Off</option>
+                        <option value={15}>15 minutes</option>
+                        <option value={30}>30 minutes</option>
+                        <option value={60}>1 hour</option>
+                    </select>
                 </label>
                 {msg && <p className="sm:col-span-2 text-green-700">{msg}</p>}
                 {err && <p className="sm:col-span-2 text-destructive">{err.message}</p>}
                 <button className="sm:col-span-2 rounded bg-milwaukeeBlue px-4 py-2 text-white">Save</button>
             </form>
+
+            <section>
+                <h2 className="text-lg font-semibold">Claim a ticket</h2>
+                <p className="text-sm text-muted-foreground">
+                    Booked as a guest? Add an existing ticket to your account.
+                </p>
+                <form onSubmit={claimTicket} className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="block text-sm">
+                        Passenger last name
+                        <input type="text" required value={claim.lastName}
+                            onChange={(e) => setClaim({ ...claim, lastName: e.target.value })}
+                            className="mt-1 w-full rounded border px-3 py-2" />
+                    </label>
+                    <label className="block text-sm">
+                        Confirmation code
+                        <input type="text" required value={claim.confirmation}
+                            onChange={(e) => setClaim({ ...claim, confirmation: e.target.value })}
+                            className="mt-1 w-full rounded border px-3 py-2" />
+                    </label>
+                    {claimMsg && <p className="sm:col-span-2 text-green-700">{claimMsg}</p>}
+                    {claimErr && <p className="sm:col-span-2 text-destructive">{claimErr.data?.error || claimErr.message}</p>}
+                    <button className="sm:col-span-2 rounded bg-milwaukeeBlue px-4 py-2 text-white">Claim ticket</button>
+                </form>
+            </section>
 
             <section>
                 <h2 className="text-lg font-semibold">Saved cards</h2>
