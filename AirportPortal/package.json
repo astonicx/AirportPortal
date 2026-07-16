@@ -24,6 +24,8 @@
     "test:frontend:watch": "vitest --config vitest.frontend.config.js --passWithNoTests",
     "test:coverage": "npm run test:coverage:backend && npm run test:coverage:frontend",
     "test:coverage:backend": "SKIP_LIVE=1 vitest run --config vitest.config.js --coverage --passWithNoTests",
+    "test:coverage:no-skip": "npm run test:coverage:backend:no-skip && npm run test:coverage:frontend",
+    "test:coverage:backend:no-skip": "SKIP_LIVE=0 MOCK_LIVE=1 BDPA_BASE_URL=http://127.0.0.1:4010 BEARER_TOKEN=test-bearer-token vitest run --config vitest.config.js --coverage --passWithNoTests",
     "test:coverage:frontend": "vitest run --config vitest.frontend.config.js --coverage --passWithNoTests",
     "test:e2e": "playwright test --pass-with-no-tests",
     "test:e2e:ui": "playwright test --ui --pass-with-no-tests",
