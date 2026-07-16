@@ -141,10 +141,10 @@ export default function Layout() {
             >
                 {user ? (
                     <div className="container flex flex-col gap-6 lg:flex-row lg:items-start">
+                        <UpcomingSidebar />
                         <div className="min-w-0 flex-1">
                             <Outlet />
                         </div>
-                        <UpcomingSidebar />
                     </div>
                 ) : (
                     <div className="container">
