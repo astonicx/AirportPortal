@@ -43,19 +43,19 @@ describe("apiClient", () => {
     });
     describe("GET requests", () => {
         it("successful GET returns data", async () => {
-            const data = await api.get("/v1/flights/search");
+            const data = await api.get("/v2/flights/search");
             expect(data).toMatchObject(fixtureFlightList);
             expect(data.flights).toHaveLength(2);
         });
 
         it("GET with query parameters", async () => {
-            const data = await api.get("/v1/flights/search?flight_id=FLIGHT-1");
+            const data = await api.get("/v2/flights/search?flight_id=FLIGHT-1");
             expect(data.flights).toHaveLength(1);
             expect(data.flights[0].id).toBe("FLIGHT-1");
         });
 
-        it("successful GET /v1/info/no-fly-list", async () => {
-            const data = await api.get("/v1/info/no-fly-list");
+        it("successful GET /v2/info/no-fly-list", async () => {
+            const data = await api.get("/v2/info/no-fly-list");
             expect(data).toMatchObject(fixtureNoFlyList);
             expect(data.noFlyList).toHaveLength(2);
         });
@@ -64,14 +64,14 @@ describe("apiClient", () => {
     describe("POST requests", () => {
         it("successful POST returns data", async () => {
             const payload = { seat: "1A" };
-            const data = await api.post("/v1/flights/FLIGHT-1/book", payload);
+            const data = await api.post("/v2/flights/FLIGHT-1/book", payload);
             expect(data).toMatchObject({ ok: true });
         });
     });
 
     describe("DELETE requests", () => {
         it("successful DELETE returns data", async () => {
-            const data = await api.delete("/v1/tickets/123");
+            const data = await api.delete("/v2/tickets/123");
             expect(data).toMatchObject({ ok: true });
         });
     });
@@ -80,7 +80,7 @@ describe("apiClient", () => {
         it("400 Bad Request throws ApiError", async () => {
             server.use(...errorHandlers.badRequest);
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.status).toBe(400);
@@ -92,7 +92,7 @@ describe("apiClient", () => {
         it("401 Unauthorized throws ApiError", async () => {
             server.use(...errorHandlers.unauthorized);
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.status).toBe(401);
@@ -103,7 +103,7 @@ describe("apiClient", () => {
         it("403 Forbidden throws ApiError", async () => {
             server.use(...errorHandlers.forbidden);
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.status).toBe(403);
@@ -114,7 +114,7 @@ describe("apiClient", () => {
         it("404 Not Found throws ApiError", async () => {
             server.use(...errorHandlers.notFound);
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.status).toBe(404);
@@ -125,7 +125,7 @@ describe("apiClient", () => {
         it("429 Rate Limit throws ApiError", async () => {
             server.use(...errorHandlers.rateLimit);
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.status).toBe(429);
@@ -137,7 +137,7 @@ describe("apiClient", () => {
         it("500 Server Error throws ApiError", async () => {
             server.use(...errorHandlers.serverError);
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.status).toBe(500);
@@ -148,7 +148,7 @@ describe("apiClient", () => {
         it("503 Service Unavailable throws ApiError", async () => {
             server.use(...errorHandlers.serviceUnavailable);
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.status).toBe(503);
@@ -161,7 +161,7 @@ describe("apiClient", () => {
         it("retries on 555 status (up to 4 attempts)", async () => {
             let attemptCount = 0;
             server.use(
-                http.get(`${BASE}/v1/flights/search`, ({ request }) => {
+                http.get(`${BASE}/v2/flights/search`, ({ request }) => {
                     attemptCount++;
                     if (attemptCount < 3) {
                         return HttpResponse.json({ error: "Retryable" }, { status: 555 });
@@ -170,7 +170,7 @@ describe("apiClient", () => {
                 })
             );
 
-            const data = await api.get("/v1/flights/search");
+            const data = await api.get("/v2/flights/search");
             expect(data).toMatchObject(fixtureFlightList);
             expect(attemptCount).toBe(3);
         });
@@ -178,14 +178,14 @@ describe("apiClient", () => {
         it("gives up after 4 failed 555 attempts", async () => {
             let attemptCount = 0;
             server.use(
-                http.get(`${BASE}/v1/flights/search`, () => {
+                http.get(`${BASE}/v2/flights/search`, () => {
                     attemptCount++;
                     return HttpResponse.json({ error: "Retryable" }, { status: 555 });
                 })
             );
 
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.status).toBe(555);
@@ -199,7 +199,7 @@ describe("apiClient", () => {
         it("network error throws ApiError with status 502", async () => {
             server.use(...networkFailureHandler);
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.status).toBe(502);
@@ -213,7 +213,7 @@ describe("apiClient", () => {
             server.use(...timeoutHandler);
             try {
                 // Request should timeout after 15 seconds (configurable in apiClient)
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 expect(err.code).toBe("UPSTREAM_ERROR");
@@ -225,7 +225,7 @@ describe("apiClient", () => {
     describe("Empty payloads", () => {
         it("null payload is handled", async () => {
             server.use(...emptyPayloadHandler);
-            const data = await api.get("/v1/flights/search");
+            const data = await api.get("/v2/flights/search");
             expect(data).toBeNull();
         });
     });
@@ -234,7 +234,7 @@ describe("apiClient", () => {
         it("non-JSON response throws error", async () => {
             server.use(...malformedPayloadHandler);
             try {
-                await api.get("/v1/flights/search");
+                await api.get("/v2/flights/search");
                 expect.fail("Should have thrown");
             } catch (err) {
                 // Axios parsing error
@@ -246,7 +246,7 @@ describe("apiClient", () => {
     describe("Missing fields", () => {
         it("partial response with missing fields is returned (no validation)", async () => {
             server.use(...missingFieldsHandler);
-            const data = await api.get("/v1/flights/search");
+            const data = await api.get("/v2/flights/search");
             expect(data.flights).toHaveLength(1);
             expect(data.flights[0].id).toBe("BROKEN-1");
             // Note: apiClient does not validate fields; routes validate responses
@@ -256,21 +256,21 @@ describe("apiClient", () => {
     describe("Different HTTP methods", () => {
         it("PUT request", async () => {
             server.use(
-                http.put(`${BASE}/v1/test`, () => {
+                http.put(`${BASE}/v2/test`, () => {
                     return HttpResponse.json({ updated: true });
                 })
             );
-            const data = await api.put("/v1/test", { foo: "bar" });
+            const data = await api.put("/v2/test", { foo: "bar" });
             expect(data).toMatchObject({ updated: true });
         });
 
         it("PATCH request", async () => {
             server.use(
-                http.patch(`${BASE}/v1/test`, () => {
+                http.patch(`${BASE}/v2/test`, () => {
                     return HttpResponse.json({ patched: true });
                 })
             );
-            const data = await api.patch("/v1/test", { foo: "bar" });
+            const data = await api.patch("/v2/test", { foo: "bar" });
             expect(data).toMatchObject({ patched: true });
         });
     });
@@ -279,13 +279,13 @@ describe("apiClient", () => {
         it("includes Bearer token in requests", async () => {
             let capturedHeader = null;
             server.use(
-                http.get(`${BASE}/v1/flights/search`, ({ request }) => {
+                http.get(`${BASE}/v2/flights/search`, ({ request }) => {
                     capturedHeader = request.headers.get("Authorization");
                     return HttpResponse.json(fixtureFlightList);
                 })
             );
 
-            await api.get("/v1/flights/search");
+            await api.get("/v2/flights/search");
             expect(capturedHeader).toMatch(/^Bearer /);
         });
     });

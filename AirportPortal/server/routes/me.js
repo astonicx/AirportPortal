@@ -5,6 +5,7 @@ const { db } = require("../db");
 const { getCached } = require("../utils/cache");
 const { requireAuth } = require("../middleware/auth");
 const { hashPassword, passwordPolicy } = require("../utils/password");
+const ffm = require("../utils/ffm");
 
 router.use(requireAuth);
 
@@ -40,6 +41,17 @@ router.get("/dashboard", (req, res) => {
         upcoming,
         past,
     });
+});
+
+// ── GET /api/me/ffm ─────────────────────────────────────────────────────────
+// Frequent flier balance for the signed-in customer. Non-customers (and any
+// account without an FFM row) report zeroes.
+router.get("/ffm", (req, res) => {
+    const role = req.user.user_type || req.user.type || "guest";
+    if (role !== "customer") {
+        return res.json({ ffmBalance: 0, lifetimeEarned: 0, lifetimeSpent: 0 });
+    }
+    res.json(ffm.getBalance(req.user.id));
 });
 
 const patchSchema = z.object({

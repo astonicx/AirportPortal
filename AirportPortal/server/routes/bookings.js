@@ -4,12 +4,17 @@ const { z } = require("zod");
 const api = require("../utils/apiClient");
 const { db } = require("../db");
 const { getCached, putCached } = require("../utils/cache");
-const { bagFees, confirmationCode } = require("../utils/pricing");
+const { confirmationCode } = require("../utils/pricing");
+const flightV2 = require("../utils/flightV2");
+const ffm = require("../utils/ffm");
 
 // A flight may only be booked here if it is landing at the airport this portal
 // serves. The upstream `type` field is not authoritative, so we match on
 // `landingAt === HOME_AIRPORT`.
 const HOME_AIRPORT = (process.env.HOME_AIRPORT || "").trim();
+
+// V2 raises the legacy 24h no-booking window to 36h.
+const ADVANCE_BOOKING_HOURS = 36;
 
 const schema = z.object({
     flightId: z.string(),
@@ -31,8 +36,12 @@ const schema = z.object({
         billingAddress: z.string(),
         billingZip: z.string(),
         saveCard: z.boolean().optional(),
+        method: z.enum(["money", "ffm", "mixed"]).optional(),
+        ffmToApply: z.number().int().min(0).optional(),
     }),
     seat: z.string(),
+    seatClass: z.string().optional(),
+    extras: z.array(z.string()).optional(),
     carryOnCount: z.number().int().min(0).max(2),
     checkedCount: z.number().int().min(0).max(5),
 });
@@ -40,7 +49,7 @@ const schema = z.object({
 async function getFlight(id) {
     const c = getCached(id);
     if (c) return c.payload;
-    const r = await api.get(`/v1/flights/search?flight_id=${id}`);
+    const r = await api.get(`/v2/flights/search?flight_id=${id}`);
     const f = (r.flights || [])[0];
     if (f) putCached(id, f);
     return f;
@@ -49,7 +58,30 @@ async function getFlight(id) {
 router.post("/", async (req, res, next) => {
     try {
         const data = schema.parse(req.body);
+
+        if (req.user && Number(req.user.is_banned) === 1) {
+            return res.status(403).json({
+                error: "You are not permitted to book",
+                code: "CUSTOMER_BANNED",
+            });
+        }
+
         const flight = await getFlight(data.flightId);
+
+        if (req.user) {
+            const restricted = db
+                .prepare(
+                    `SELECT id FROM airline_restrictions
+                     WHERE user_id=? AND lower(airline)=lower(?)`
+                )
+                .get(req.user.id, flight.airline || "");
+            if (restricted) {
+                return res.status(403).json({
+                    error: `You are not permitted to book with ${flight.airline}`,
+                    code: "AIRLINE_RESTRICTED",
+                });
+            }
+        }
 
         if (!flight.bookable || flight.status !== "scheduled") {
             return res.status(400).json({ error: "Flight not bookable" });
@@ -61,8 +93,11 @@ router.post("/", async (req, res, next) => {
                 .json({ error: "Only flights landing at this airport can be booked" });
         }
         const arrives = new Date(flight.arriveAtReceiver);
-        if (arrives.getTime() < Date.now() + 24 * 3600 * 1000) {
-            return res.status(400).json({ error: "Flight departs within 24h" });
+        if (arrives.getTime() < Date.now() + ADVANCE_BOOKING_HOURS * 3600 * 1000) {
+            return res.status(400).json({
+                error: `Flight departs within ${ADVANCE_BOOKING_HOURS}h`,
+                code: "BOOKING_TOO_CLOSE",
+            });
         }
 
         const lock = db
@@ -76,7 +111,7 @@ router.post("/", async (req, res, next) => {
         // No Fly + airline-ban
         let noFly = { noFlyList: [] };
         try {
-            noFly = await api.get("/v1/info/no-fly-list");
+            noFly = await api.get("/v2/info/no-fly-list");
         } catch { }
         const norm = (s) => (s || "").trim().toLowerCase();
         const pad = (n) => String(n).padStart(2, "0");
@@ -99,14 +134,35 @@ router.post("/", async (req, res, next) => {
             .get(banKey, norm(flight.airline));
         if (banned) return res.status(403).json({ error: "Banned from this airline" });
 
-        const seatPriceCents = Math.round(
-            (flight.seat_price ?? flight.seatPrice ?? 0) * 100
+        const seatPriceCents = flightV2.seatClassPriceCents(flight, data.seatClass) ||
+            Math.round((flight.seat_price ?? flight.seatPrice ?? 0) * 100);
+        const fees = flightV2.baggageCostCents(
+            flight,
+            data.carryOnCount,
+            data.checkedCount
         );
-        const fees = bagFees(data.carryOnCount, data.checkedCount) * 100;
-        const total = seatPriceCents + fees;
+        const resolvedExtras = flightV2.resolveExtras(flight, data.extras || []);
+        const extrasMoneyCents = resolvedExtras.totalCents;
+        const extrasFfm = resolvedExtras.totalFfm;
+
+        // FFM (points) are only available to logged-in customers.
+        const ffmToApply = req.user ? Math.max(0, data.payment.ffmToApply || 0) : 0;
+        if (req.user && (ffmToApply > 0 || extrasFfm > 0)) {
+            const { ffmBalance } = ffm.getBalance(req.user.id);
+            if (ffmBalance < ffmToApply + extrasFfm) {
+                return res.status(400).json({
+                    error: "Insufficient frequent flier miles",
+                    code: "INSUFFICIENT_FFM",
+                });
+            }
+        }
+
+        // 1 FFM point discounts 1 cent of the money total.
+        const grossMoney = seatPriceCents + fees + extrasMoneyCents;
+        const total = Math.max(0, grossMoney - ffmToApply);
 
         try {
-            await api.post(`/v1/flights/${data.flightId}/book`, { seat: data.seat });
+            await api.post(`/v2/flights/${data.flightId}/book`, { seat: data.seat });
         } catch (e) {
             // upstream may be flaky; we still persist locally so the customer
             // doesn't lose their booking, then operators can reconcile.
@@ -146,6 +202,23 @@ router.post("/", async (req, res, next) => {
             data.seat
         );
 
+        // Persist extras and settle FFM (points spent + earned) for customers.
+        const ticketId = info.lastInsertRowid;
+        for (const ex of resolvedExtras.items) {
+            db.prepare(
+                `INSERT INTO ticket_extras (ticket_id, extra_name, cost_cents, cost_ffm)
+                 VALUES (?, ?, ?, ?)`
+            ).run(ticketId, ex.name, ex.costCents || 0, ex.costFfm || 0);
+        }
+        let ffmBalance = null;
+        if (req.user) {
+            const spent = ffmToApply + extrasFfm;
+            if (spent > 0) ffm.spend(req.user.id, spent);
+            const credit = flightV2.ffmCredit(flight);
+            if (total > 0 && credit > 0) ffm.earn(req.user.id, credit);
+            ffmBalance = ffm.getBalance(req.user.id).ffmBalance;
+        }
+
         if (data.payment.saveCard && req.user) {
             const last4 = data.payment.cardNumber.slice(-4);
             db.prepare(
@@ -170,6 +243,7 @@ router.post("/", async (req, res, next) => {
             ticketId: info.lastInsertRowid,
             confirmationCode: code,
             totalCents: total,
+            ffmBalance,
         });
     } catch (e) {
         next(e);

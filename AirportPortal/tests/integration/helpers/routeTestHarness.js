@@ -34,6 +34,7 @@ function initApp() {
     expressApp.use("/api/bookings", require("../../../server/routes/bookings"));
     expressApp.use("/api/tickets", require("../../../server/routes/tickets"));
     expressApp.use("/api/me", require("../../../server/routes/me"));
+    expressApp.use("/api/attendant", require("../../../server/routes/attendant"));
     expressApp.use("/api/admin/admins", require("../../../server/routes/adminRoot"));
     expressApp.use("/api/admin", require("../../../server/routes/admin"));
 
@@ -55,6 +56,11 @@ function resetDb() {
     const tables = [
         "admin_audit",
         "airline_bans",
+        "airline_restrictions",
+        "frequent_flier_accounts",
+        "ticket_extras",
+        "attendant_assignments",
+        "checkin_records",
         "seat_locks",
         "tickets",
         "saved_cards",
@@ -85,13 +91,16 @@ async function createUser(overrides = {}) {
         auto_logout_minutes: 15,
         ...overrides,
     };
+    // Legacy `type` is CHECK-constrained to customer/admin/root; the V2 role
+    // lives in `user_type` and may also be 'attendant'/'guest'.
+    const userType = user.user_type ?? user.type;
     const password_hash = await hashPassword(user.password);
     const info = db
         .prepare(
             `INSERT INTO users
              (type, first_name, last_name, dob, email, password_hash,
-              must_change_password, must_complete_profile, auto_logout_minutes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              must_change_password, must_complete_profile, auto_logout_minutes, user_type)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
             user.type,
@@ -102,7 +111,8 @@ async function createUser(overrides = {}) {
             password_hash,
             user.must_change_password ? 1 : 0,
             user.must_complete_profile ? 1 : 0,
-            user.auto_logout_minutes
+            user.auto_logout_minutes,
+            userType
         );
     return { id: Number(info.lastInsertRowid), ...user, password_hash };
 }

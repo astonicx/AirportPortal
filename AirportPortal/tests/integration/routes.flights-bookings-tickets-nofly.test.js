@@ -50,7 +50,7 @@ describe("routes: flights/bookings/tickets/no-fly", () => {
 
     it("GET /api/flights returns paginated schema", async () => {
         server.use(
-            http.get(`${BASE}/v1/flights/search`, () => HttpResponse.json({ flights: [bookableFlight()] }))
+            http.get(`${BASE}/v2/flights/search`, () => HttpResponse.json({ flights: [bookableFlight()] }))
         );
         const res = await request(app).get("/api/flights?type=departure&page=1&pageSize=20");
         expect(res.status).toBe(200);
@@ -68,7 +68,7 @@ describe("routes: flights/bookings/tickets/no-fly", () => {
 
     it("GET /api/flights upstream failure falls back to cache", async () => {
         seedFlightCache("C1", bookableFlight({ id: "C1", flight_id: "C1" }));
-        server.use(http.get(`${BASE}/v1/flights/search`, () => HttpResponse.error()));
+        server.use(http.get(`${BASE}/v2/flights/search`, () => HttpResponse.error()));
         const res = await request(app).get("/api/flights");
         expect(res.status).toBe(200);
         expect(res.body.total).toBeGreaterThanOrEqual(1);
@@ -198,8 +198,8 @@ describe("routes: flights/bookings/tickets/no-fly", () => {
         );
 
         server.use(
-            http.get(`${BASE}/v1/info/no-fly-list`, () => HttpResponse.json({ noFlyList: [] })),
-            http.post(`${BASE}/v1/flights/B1/book`, () => HttpResponse.json({ ok: true }))
+            http.get(`${BASE}/v2/info/no-fly-list`, () => HttpResponse.json({ noFlyList: [] })),
+            http.post(`${BASE}/v2/flights/B1/book`, () => HttpResponse.json({ ok: true }))
         );
 
         const res = await request(app)
@@ -288,7 +288,7 @@ describe("routes: flights/bookings/tickets/no-fly", () => {
         ).run();
         const id = db.prepare("SELECT id FROM tickets WHERE confirmation_code='CONF200'").get().id;
 
-        server.use(http.delete(`${BASE}/v1/tickets/${id}`, () => HttpResponse.json({ ok: true })));
+        server.use(http.delete(`${BASE}/v2/tickets/${id}`, () => HttpResponse.json({ ok: true })));
 
         const res = await request(app).post(`/api/tickets/${id}/cancel`).send({ lastName: "Last", code: "CONF200" });
         expect(res.status).toBe(200);

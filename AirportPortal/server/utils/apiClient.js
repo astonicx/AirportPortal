@@ -9,11 +9,31 @@ class ApiError extends Error {
   }
 }
 
-const BASE = process.env.BDPA_BASE_URL || "";
+const DEFAULT_BASE = "https://airports.api.hscc.bdpa.org/v2";
+const BASE = process.env.BDPA_BASE_URL || DEFAULT_BASE;
 const TOKEN = process.env.BEARER_TOKEN || "";
+const DEV_LOG = process.env.NODE_ENV !== "production";
+
+function safeUrl(url = "") {
+  return String(url || "").replace(/\?.*$/, "");
+}
+
+function logRequest(config) {
+  if (!DEV_LOG) return;
+  const method = String(config?.method || "GET").toUpperCase();
+  const url = safeUrl(config?.url || "");
+  console.log(`[api] ${method} ${url}`);
+}
+
+function logResponse(config, status) {
+  if (!DEV_LOG) return;
+  const method = String(config?.method || "GET").toUpperCase();
+  const url = safeUrl(config?.url || "");
+  console.log(`[api] ${method} ${url} -> ${status}`);
+}
 
 const instance = axios.create({
-  baseURL: BASE,
+  baseURL: String(BASE).replace(/\/+$/, ""),
   headers: {
     "Content-Type": "application/json",
     Authorization: `Bearer ${TOKEN}`,
@@ -25,7 +45,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function request(config, attempt = 0) {
   try {
+    logRequest(config);
     const res = await instance.request(config);
+    logResponse(config, res.status);
     return res.data;
   } catch (err) {
     const status = err?.response?.status ?? 0;
@@ -35,6 +57,9 @@ async function request(config, attempt = 0) {
     }
     const message =
       err?.response?.data?.error || err?.message || "Upstream failure";
+    if (DEV_LOG) {
+      logResponse(config, status || 502);
+    }
     throw new ApiError(status || 502, "UPSTREAM_ERROR", message);
   }
 }

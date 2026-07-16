@@ -8,10 +8,10 @@ This project uses [MSW (Mock Service Worker)](https://mswjs.io/) to mock all ext
 
 The application makes requests to BDPA (flight/booking/no-fly) endpoints:
 
-- `GET /v1/flights/search` - Query available flights (with optional filters)
-- `GET /v1/info/no-fly-list` - Fetch no-fly list entries
-- `POST /v1/flights/:id/book` - Book a flight seat
-- `DELETE /v1/tickets/:id` - Cancel a ticket
+- `GET /v2/flights/search` - Query available flights (with optional filters)
+- `GET /v2/info/no-fly-list` - Fetch no-fly list entries
+- `POST /v2/flights/:id/book` - Book a flight seat
+- `DELETE /v2/tickets/:id` - Cancel a ticket
 
 ### Client Implementation
 
@@ -96,8 +96,8 @@ Tests that make real API calls (skipped in CI by default):
 
 ```
 tests/integration/apiClient.live.test.mjs
-├── Real GET /v1/flights/search
-├── Real GET /v1/info/no-fly-list
+├── Real GET /v2/flights/search
+├── Real GET /v2/info/no-fly-list
 ├── Rate limit behavior
 └── Timeout behavior
 ```
@@ -160,7 +160,7 @@ it("handles rate limit error", async () => {
 import { http, HttpResponse } from "msw";
 
 const customHandler = http.get(
-    `${BASE}/v1/flights/search`,
+    `${BASE}/v2/flights/search`,
     () => {
         return HttpResponse.json(
             { error: "Custom error" },

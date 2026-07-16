@@ -77,7 +77,7 @@ describe("routes with API integration (mocked)", () => {
 
         it("filters out past flights", async () => {
             server.use(
-                http.get(`${BASE}/v1/flights/search`, () => {
+                http.get(`${BASE}/v2/flights/search`, () => {
                     return HttpResponse.json({
                         flights: [
                             {
@@ -199,7 +199,7 @@ describe("routes with API integration (mocked)", () => {
 
         it("malformed upstream data handled gracefully", async () => {
             server.use(
-                http.get(`${BASE}/v1/info/no-fly-list`, () => {
+                http.get(`${BASE}/v2/info/no-fly-list`, () => {
                     return HttpResponse.json({
                         noFlyList: [
                             {
@@ -322,7 +322,7 @@ describe("routes with API integration (mocked)", () => {
 
         it("booking handles upstream no-fly check error gracefully", async () => {
             server.use(
-                http.get(`${BASE}/v1/info/no-fly-list`, () => {
+                http.get(`${BASE}/v2/info/no-fly-list`, () => {
                     return HttpResponse.error();
                 })
             );
@@ -377,7 +377,7 @@ describe("routes with API integration (mocked)", () => {
         it("rate limit error (429) falls back to empty cache", async () => {
             // When upstream returns rate limit error, route falls back to cache (which is empty)
             server.use(
-                http.get(`${BASE}/v1/flights/search`, () => {
+                http.get(`${BASE}/v2/flights/search`, () => {
                     return HttpResponse.json(
                         { error: "Too many requests" },
                         { status: 429, headers: { "Retry-After": "60" } }
@@ -394,7 +394,7 @@ describe("routes with API integration (mocked)", () => {
     describe("Empty and malformed responses", () => {
         it("empty flights array handled", async () => {
             server.use(
-                http.get(`${BASE}/v1/flights/search`, () => {
+                http.get(`${BASE}/v2/flights/search`, () => {
                     return HttpResponse.json({ flights: [] });
                 })
             );
@@ -406,7 +406,7 @@ describe("routes with API integration (mocked)", () => {
 
         it("null flights response handled", async () => {
             server.use(
-                http.get(`${BASE}/v1/flights/search`, () => {
+                http.get(`${BASE}/v2/flights/search`, () => {
                     return HttpResponse.json(null);
                 })
             );

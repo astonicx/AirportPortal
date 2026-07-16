@@ -8,38 +8,19 @@ const { requireAuth } = require("../middleware/auth");
 const {
     signupSchema,
     loginSchema,
-    emailLoginSchema,
     recoverInitSchema,
     recoverAnswerSchema,
     recoverResetSchema,
 } = require("../utils/validators");
 
 // ── helpers ─────────────────────────────────────────────────────────────────
-function uniqueDisambiguator(first, last) {
-    const taken = new Set(
-        db
-            .prepare(
-                "SELECT login_disambiguator FROM users WHERE first_name=? AND last_name=?"
-            )
-            .all(first, last)
-            .map((r) => r.login_disambiguator || "")
-    );
-    if (!taken.has("")) return null;
-    for (let i = 2; i < 9999; i++) if (!taken.has(String(i))) return String(i);
-    return randomBytes(3).toString("hex");
-}
-
-function pickIdentity(rows, disambiguator) {
-    if (rows.length === 0) return null;
-    if (rows.length === 1) return rows[0];
-    if (!disambiguator) return { collision: true };
-    return rows.find((r) => r.login_disambiguator === disambiguator) || null;
-}
+const userRole = (u) => u.user_type || u.type || "guest";
 
 function publicUser(u) {
     return {
         id: u.id,
-        type: u.type,
+        type: userRole(u),
+        user_type: userRole(u),
         firstName: u.first_name,
         lastName: u.last_name,
         email: u.email,
@@ -62,14 +43,13 @@ router.post("/signup", async (req, res, next) => {
         const policy = passwordPolicy(data.password);
         if (!policy.ok) return res.status(400).json({ error: policy.reason });
 
-        const disamb = uniqueDisambiguator(data.first_name, data.last_name);
         const pwHash = await hashPassword(data.password);
 
         const insertUser = db.prepare(
             `INSERT INTO users
        (type, title, first_name, middle_name, last_name, suffix, dob, gender,
-        address1, city, state, zip, country, phone, email, login_disambiguator, password_hash)
-       VALUES ('customer',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+        address1, city, state, zip, country, phone, email, login_disambiguator, password_hash, user_type)
+       VALUES ('customer',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'customer')`
         );
         const insertQ = db.prepare(
             "INSERT INTO security_questions (user_id, question, answer_hash) VALUES (?, ?, ?)"
@@ -92,7 +72,7 @@ router.post("/signup", async (req, res, next) => {
                 data.country,
                 data.phone,
                 data.email,
-                disamb,
+                null,
                 pwHash
             );
             userId = info.lastInsertRowid;
@@ -111,7 +91,7 @@ router.post("/signup", async (req, res, next) => {
         res.status(201).json({
             ok: true,
             userId,
-            disambiguator: disamb,
+            email: data.email,
             strength: policy.level,
         });
     } catch (e) {
@@ -132,13 +112,7 @@ function auditLogin(userId, req, success) {
 
 router.post("/login", async (req, res, next) => {
     try {
-        // Two supported login shapes:
-        //  - { email, password }                       (email-based UI)
-        //  - { firstName, lastName, password, disambiguator? }  (spec form)
-        const isEmailLogin = typeof req.body?.email === "string" && req.body.email.length > 0;
-        const data = isEmailLogin
-            ? emailLoginSchema.parse(req.body)
-            : loginSchema.parse(req.body);
+        const data = loginSchema.parse(req.body);
 
         // Optional captcha verification (only enforced when both fields present)
         if (data.captchaAnswer !== undefined && data.captchaExpected !== undefined) {
@@ -147,30 +121,17 @@ router.post("/login", async (req, res, next) => {
             }
         }
 
-        let user;
-        if (isEmailLogin) {
-            user = db.prepare("SELECT * FROM users WHERE email=?").get(data.email);
-            if (!user) {
-                auditLogin(null, req, false);
-                return res.status(401).json({ error: "Invalid credentials", attemptsRemaining: 3 });
-            }
-        } else {
-            // Look up account(s) by first + last name
-            const rows = db
-                .prepare("SELECT * FROM users WHERE first_name=? AND last_name=?")
-                .all(data.firstName, data.lastName);
+        const user = db.prepare("SELECT * FROM users WHERE email=?").get(data.email);
+        if (!user) {
+            auditLogin(null, req, false);
+            return res
+                .status(401)
+                .json({ error: "Invalid credentials", attemptsRemaining: 3 });
+        }
 
-            const picked = pickIdentity(rows, data.disambiguator);
-            if (!picked) {
-                auditLogin(null, req, false);
-                return res.status(401).json({ error: "Invalid credentials", attemptsRemaining: 3 });
-            }
-            if (picked.collision) {
-                return res
-                    .status(409)
-                    .json({ error: "Multiple accounts share this name", needsDisambiguator: true });
-            }
-            user = picked;
+        if (Number(user.is_banned) === 1) {
+            auditLogin(user.id, req, false);
+            return res.status(403).json({ error: "Account banned" });
         }
 
         // lockout check
@@ -246,18 +207,19 @@ const resetTokens = new Map(); // userId -> { token, expires }
 
 router.post("/recover/init", (req, res, next) => {
     try {
-        const { firstName, lastName, dob } = recoverInitSchema.parse(req.body);
-        const user = db
-            .prepare(
-                "SELECT * FROM users WHERE first_name=? AND last_name=? AND dob=?"
-            )
-            .get(firstName, lastName, dob);
+        const { email } = recoverInitSchema.parse(req.body);
+        const user = db.prepare("SELECT * FROM users WHERE email=?").get(email);
         if (!user) return res.status(404).json({ error: "Not found" });
-        // Customers only — admins/root must contact a root admin.
-        if (user.type !== "customer") {
-            return res
-                .status(403)
-                .json({ error: "Password recovery is for customer accounts only." });
+        // Customers only — privileged accounts must use admin reset flows.
+        const role = userRole(user);
+        if (role === "admin" || role === "root") {
+            return res.status(403).json({ error: "Admins cannot use password recovery" });
+        }
+        if (role === "attendant") {
+            return res.status(403).json({ error: "Attendants cannot use password recovery" });
+        }
+        if (role !== "customer") {
+            return res.status(403).json({ error: "Password recovery is for customer accounts only." });
         }
         const qs = db
             .prepare("SELECT id, question FROM security_questions WHERE user_id=?")
@@ -296,8 +258,12 @@ router.post("/recover/answer", async (req, res, next) => {
 
 router.post("/recover/reset", async (req, res, next) => {
     try {
-        const { resetToken, password } = recoverResetSchema.parse(req.body);
-        const policy = passwordPolicy(password);
+        const { resetToken, password, newPassword } = recoverResetSchema.parse(req.body);
+        const nextPassword = password || newPassword;
+        if (!nextPassword) {
+            return res.status(400).json({ error: "password is required" });
+        }
+        const policy = passwordPolicy(nextPassword);
         if (!policy.ok) return res.status(400).json({ error: policy.reason });
 
         let userId = null;
@@ -311,7 +277,7 @@ router.post("/recover/reset", async (req, res, next) => {
             return res.status(400).json({ error: "Invalid or expired token" });
         }
 
-        const hash = await hashPassword(password);
+        const hash = await hashPassword(nextPassword);
         db.prepare(
             "UPDATE users SET password_hash=?, must_change_password=0 WHERE id=?"
         ).run(hash, userId);

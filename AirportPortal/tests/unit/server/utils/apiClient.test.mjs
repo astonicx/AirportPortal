@@ -74,23 +74,23 @@ describe("ApiError", () => {
 describe("get() – success", () => {
     it("returns parsed response data on 200", async () => {
         server.use(
-            http.get(`${BASE}/v1/flights`, () =>
+            http.get(`${BASE}/v2/flights`, () =>
                 HttpResponse.json({ flights: [{ id: "F1" }] })
             )
         );
-        const data = await get("/v1/flights");
+        const data = await get("/v2/flights");
         expect(data).toEqual({ flights: [{ id: "F1" }] });
     });
 
     it("passes query string parameters through unchanged", async () => {
         let receivedUrl;
         server.use(
-            http.get(`${BASE}/v1/flights/search`, ({ request }) => {
+            http.get(`${BASE}/v2/flights/search`, ({ request }) => {
                 receivedUrl = new URL(request.url);
                 return HttpResponse.json({ flights: [] });
             })
         );
-        await get("/v1/flights/search?type=departure");
+        await get("/v2/flights/search?type=departure");
         expect(receivedUrl.searchParams.get("type")).toBe("departure");
     });
 });
@@ -99,13 +99,13 @@ describe("post() – success", () => {
     it("sends JSON body and returns response data", async () => {
         let receivedBody;
         server.use(
-            http.post(`${BASE}/v1/flights/book`, async ({ request }) => {
+            http.post(`${BASE}/v2/flights/book`, async ({ request }) => {
                 receivedBody = await request.json();
                 return HttpResponse.json({ ok: true, ticketId: "T1" });
             })
         );
 
-        const data = await post("/v1/flights/book", { seat: "3C" });
+        const data = await post("/v2/flights/book", { seat: "3C" });
         expect(data).toEqual({ ok: true, ticketId: "T1" });
         expect(receivedBody).toEqual({ seat: "3C" });
     });
@@ -116,12 +116,12 @@ describe("post() – success", () => {
 describe("get() – upstream errors", () => {
     it("throws ApiError with the upstream status code on 404", async () => {
         server.use(
-            http.get(`${BASE}/v1/flights`, () =>
+            http.get(`${BASE}/v2/flights`, () =>
                 HttpResponse.json({ error: "Not Found" }, { status: 404 })
             )
         );
 
-        const err = await get("/v1/flights").catch((e) => e);
+        const err = await get("/v2/flights").catch((e) => e);
         expect(err).toBeInstanceOf(ApiError);
         expect(err.status).toBe(404);
         expect(err.code).toBe("UPSTREAM_ERROR");
@@ -129,33 +129,33 @@ describe("get() – upstream errors", () => {
 
     it("throws ApiError with the upstream status code on 403", async () => {
         server.use(
-            http.get(`${BASE}/v1/flights`, () =>
+            http.get(`${BASE}/v2/flights`, () =>
                 HttpResponse.json({ error: "Forbidden" }, { status: 403 })
             )
         );
 
-        const err = await get("/v1/flights").catch((e) => e);
+        const err = await get("/v2/flights").catch((e) => e);
         expect(err).toBeInstanceOf(ApiError);
         expect(err.status).toBe(403);
     });
 
     it("uses the upstream error message from the response body", async () => {
         server.use(
-            http.get(`${BASE}/v1/flights`, () =>
+            http.get(`${BASE}/v2/flights`, () =>
                 HttpResponse.json({ error: "Custom upstream message" }, { status: 422 })
             )
         );
 
-        const err = await get("/v1/flights").catch((e) => e);
+        const err = await get("/v2/flights").catch((e) => e);
         expect(err.message).toBe("Custom upstream message");
     });
 
     it("throws ApiError with status 502 on a network-level failure", async () => {
         server.use(
-            http.get(`${BASE}/v1/flights`, () => HttpResponse.error())
+            http.get(`${BASE}/v2/flights`, () => HttpResponse.error())
         );
 
-        const err = await get("/v1/flights").catch((e) => e);
+        const err = await get("/v2/flights").catch((e) => e);
         expect(err).toBeInstanceOf(ApiError);
         // Network errors have no response.status, so apiClient maps them to 502
         expect(err.status).toBe(502);
@@ -168,7 +168,7 @@ describe("get() – 555 retry behaviour", () => {
     it("retries once on 555 and succeeds on the second attempt", async () => {
         let callCount = 0;
         server.use(
-            http.get(`${BASE}/v1/flights`, () => {
+            http.get(`${BASE}/v2/flights`, () => {
                 callCount += 1;
                 if (callCount === 1) {
                     return HttpResponse.json({ error: "temp" }, { status: 555 });
@@ -177,7 +177,7 @@ describe("get() – 555 retry behaviour", () => {
             })
         );
 
-        const data = await get("/v1/flights");
+        const data = await get("/v2/flights");
         expect(data).toEqual({ flights: [] });
         expect(callCount).toBe(2);
     });
@@ -185,7 +185,7 @@ describe("get() – 555 retry behaviour", () => {
     it("retries up to 3 times on 555 then succeeds", async () => {
         let callCount = 0;
         server.use(
-            http.get(`${BASE}/v1/flights`, () => {
+            http.get(`${BASE}/v2/flights`, () => {
                 callCount += 1;
                 // Fail 3 times (attempts 0, 1, 2), succeed on attempt 3
                 if (callCount < 4) {
@@ -195,7 +195,7 @@ describe("get() – 555 retry behaviour", () => {
             })
         );
 
-        const data = await get("/v1/flights");
+        const data = await get("/v2/flights");
         expect(data).toEqual({ flights: [] });
         expect(callCount).toBe(4);
     });
@@ -205,13 +205,13 @@ describe("get() – 555 retry behaviour", () => {
         // The 10 s test timeout is set accordingly.
         let callCount = 0;
         server.use(
-            http.get(`${BASE}/v1/flights`, () => {
+            http.get(`${BASE}/v2/flights`, () => {
                 callCount += 1;
                 return HttpResponse.json({ error: "always 555" }, { status: 555 });
             })
         );
 
-        const err = await get("/v1/flights").catch((e) => e);
+        const err = await get("/v2/flights").catch((e) => e);
 
         expect(err).toBeInstanceOf(ApiError);
         // attempt 0, 1, 2 → retry; attempt 3 → not retried (3 < 3 is false)

@@ -76,7 +76,7 @@ const BASE_RECOVER_ANSWER = {
 
 const BASE_RECOVER_RESET = {
     resetToken: "a".repeat(10), // minimum 10 chars
-    newPassword: "newpassword",
+    password: "newpassword",
 };
 
 // ── signupSchema ──────────────────────────────────────────────────────────────
@@ -204,10 +204,6 @@ describe("loginSchema – happy path", () => {
         expect(valid(loginSchema, BASE_LOGIN)).toBe(true);
     });
 
-    it("accepts optional disambiguator", () => {
-        expect(valid(loginSchema, { ...BASE_LOGIN, disambiguator: "2" })).toBe(true);
-    });
-
     it("accepts rememberMe: true", () => {
         expect(valid(loginSchema, { ...BASE_LOGIN, rememberMe: true })).toBe(true);
     });
@@ -216,8 +212,8 @@ describe("loginSchema – happy path", () => {
         expect(valid(loginSchema, { ...BASE_LOGIN, rememberMe: false })).toBe(true);
     });
 
-    it("accepts when disambiguator is absent", () => {
-        const { disambiguator: _d, ...rest } = { ...BASE_LOGIN, disambiguator: "2" };
+    it("accepts when rememberMe is absent", () => {
+        const { rememberMe: _r, ...rest } = { ...BASE_LOGIN, rememberMe: true };
         expect(valid(loginSchema, rest)).toBe(true);
     });
 });
@@ -331,19 +327,19 @@ describe("recoverResetSchema – happy path", () => {
 
 describe("recoverResetSchema – validation failures", () => {
     it("rejects resetToken shorter than 10 characters", () => {
-        expect(valid(recoverResetSchema, { resetToken: "short", newPassword: "pass" })).toBe(false);
+        expect(valid(recoverResetSchema, { resetToken: "short", password: "pass" })).toBe(false);
     });
 
     it("rejects exactly 9 character token", () => {
-        expect(valid(recoverResetSchema, { resetToken: "a".repeat(9), newPassword: "pass" })).toBe(false);
+        expect(valid(recoverResetSchema, { resetToken: "a".repeat(9), password: "pass" })).toBe(false);
     });
 
     it("accepts exactly 10 character token (boundary)", () => {
-        expect(valid(recoverResetSchema, { resetToken: "a".repeat(10), newPassword: "pass" })).toBe(true);
+        expect(valid(recoverResetSchema, { resetToken: "a".repeat(10), password: "pass" })).toBe(true);
     });
 
     it("rejects missing resetToken", () => {
-        expect(valid(recoverResetSchema, { newPassword: "newpassword" })).toBe(false);
+        expect(valid(recoverResetSchema, { password: "newpassword" })).toBe(false);
     });
 
     it("rejects missing newPassword", () => {
@@ -352,6 +348,6 @@ describe("recoverResetSchema – validation failures", () => {
 
     it("rejects non-string resetToken", () => {
         // @ts-expect-error intentional wrong type
-        expect(valid(recoverResetSchema, { resetToken: 12345678901, newPassword: "pass" })).toBe(false);
+        expect(valid(recoverResetSchema, { resetToken: 12345678901, password: "pass" })).toBe(false);
     });
 });

@@ -28,7 +28,7 @@ function entryDob(bd) {
 router.post("/check", async (req, res, next) => {
     try {
         const p = schema.parse(req.body);
-        const list = await api.get("/v1/info/no-fly-list");
+        const list = await api.get("/v2/info/no-fly-list");
         const entries = list.noFlyList || [];
         const hit = entries.find(
             (e) =>

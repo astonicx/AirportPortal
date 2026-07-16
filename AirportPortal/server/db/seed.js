@@ -10,8 +10,8 @@ async function seedRoot() {
     if (existing) return;
     const hash = await hashPassword(pw);
     db.prepare(
-        `INSERT INTO users (type, first_name, last_name, email, password_hash)
-     VALUES ('root','Root','Admin',?,?)`
+        `INSERT INTO users (type, first_name, last_name, email, password_hash, user_type)
+      VALUES ('root','Root','Admin',?,?,'root')`
     ).run(email, hash);
     console.log(`seeded root admin: ${email}`);
 }
@@ -42,14 +42,14 @@ async function seedTestUsers() {
     if (process.env.NODE_ENV === "production") return;
     if (process.env.SEED_TEST_USERS === "false") return;
     const insert = db.prepare(
-        `INSERT INTO users (type, first_name, last_name, email, password_hash)
-     VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO users (type, first_name, last_name, email, password_hash, user_type)
+      VALUES (?, ?, ?, ?, ?, ?)`
     );
     for (const u of TEST_USERS) {
         const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(u.email);
         if (existing) continue;
         const hash = await hashPassword(u.password);
-        insert.run(u.type, u.first_name, u.last_name, u.email, hash);
+        insert.run(u.type, u.first_name, u.last_name, u.email, hash, u.type);
         console.log(
             `seeded ${u.type} test user: login "${u.first_name} ${u.last_name}" / ${u.password}`
         );

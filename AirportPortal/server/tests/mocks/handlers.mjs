@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 
 export const handlers = [
     // Mock BDPA API - Flights endpoint
-    http.get('https://bdpa-simulator.airport.local/v1/flights', ({ request }) => {
+    http.get('https://bdpa-simulator.airport.local/v2/flights', ({ request }) => {
         const url = new URL(request.url);
         const type = url.searchParams.get('type'); // 'arrival' or 'departure'
         const page = parseInt(url.searchParams.get('page') || '1', 10);
@@ -48,7 +48,7 @@ export const handlers = [
     }),
 
     // Mock BDPA API - Flight detail
-    http.get('https://bdpa-simulator.airport.local/v1/flights/:id', ({ params }) => {
+    http.get('https://bdpa-simulator.airport.local/v2/flights/:id', ({ params }) => {
         const { id } = params;
 
         return HttpResponse.json({
@@ -68,7 +68,7 @@ export const handlers = [
     }),
 
     // Mock BDPA API - Booking endpoint
-    http.post('https://bdpa-simulator.airport.local/v1/flights/:id/book', async ({ params, request }) => {
+    http.post('https://bdpa-simulator.airport.local/v2/flights/:id/book', async ({ params, request }) => {
         const body = await request.json();
 
         // Simulate occasional failures (HTTP 555) for retry testing
@@ -85,7 +85,7 @@ export const handlers = [
     }),
 
     // Mock BDPA API - Seat release
-    http.post('https://bdpa-simulator.airport.local/v1/flights/:id/seats/:seatId/release', () => {
+    http.post('https://bdpa-simulator.airport.local/v2/flights/:id/seats/:seatId/release', () => {
         return HttpResponse.json({ success: true });
     }),
 ];

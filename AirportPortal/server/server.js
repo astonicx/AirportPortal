@@ -11,6 +11,7 @@ const helmet = require("helmet");
 const requestId = require("./middleware/requestId");
 const errorHandler = require("./middleware/errorHandler");
 const { attachUser } = require("./middleware/auth");
+const requireNotBanned = require("./middleware/requireNotBanned");
 const bookingSession = require("./middleware/bookingSession");
 const completionGate = require("./middleware/completionGate");
 const { authLimiter, bookingLimiter } = require("./middleware/rateLimit");
@@ -49,6 +50,7 @@ app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser(process.env.SESSION_COOKIE_SECRET));
 app.use(requestId);
 app.use(attachUser);
+app.use(requireNotBanned);
 app.use(bookingSession);
 app.use(completionGate);
 
@@ -64,6 +66,7 @@ app.use("/api/no-fly", require("./routes/noFly"));
 app.use("/api/bookings", require("./routes/bookings"));
 app.use("/api/tickets", require("./routes/tickets"));
 app.use("/api/me", require("./routes/me"));
+app.use("/api/attendant", require("./routes/attendant"));
 app.use("/api/admin/admins", require("./routes/adminRoot")); // root-only; mount BEFORE /api/admin
 app.use("/api/admin", require("./routes/admin"));
 

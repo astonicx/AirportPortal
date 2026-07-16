@@ -21,14 +21,16 @@ function requireAuth(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-    if (!req.user || (req.user.type !== "admin" && req.user.type !== "root")) {
+    const role = req.user?.user_type || req.user?.type;
+    if (!req.user || (role !== "admin" && role !== "root")) {
         return res.status(403).json({ error: "Admin only" });
     }
     next();
 }
 
 function requireRoot(req, res, next) {
-    if (!req.user || req.user.type !== "root") {
+    const role = req.user?.user_type || req.user?.type;
+    if (!req.user || role !== "root") {
         return res.status(403).json({ error: "Root only" });
     }
     next();

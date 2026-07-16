@@ -36,8 +36,8 @@ router.post("/", async (req, res, next) => {
         const hash = await hashPassword(data.password);
         const info = db
             .prepare(
-                `INSERT INTO users (type, first_name, last_name, email, password_hash)
-         VALUES ('admin', ?, ?, ?, ?)`
+                `INSERT INTO users (type, first_name, last_name, email, password_hash, user_type)
+         VALUES ('admin', ?, ?, ?, ?, 'admin')`
             )
             .run(data.first_name, data.last_name, data.email, hash);
         audit(req, "create", info.lastInsertRowid, { email: data.email });

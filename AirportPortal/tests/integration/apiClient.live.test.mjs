@@ -30,20 +30,20 @@ describe.skipIf(SKIP_LIVE)("live API smoke tests", () => {
         if (USE_MOCK_LIVE) server.use(...successHandlers);
     });
 
-    it("can GET /v1/flights/search with type=departure", async () => {
-        const response = await api.get("/v1/flights/search?type=departure");
+    it("can GET /v2/flights/search with type=departure", async () => {
+        const response = await api.get("/v2/flights/search?type=departure");
         expect(response).toBeDefined();
         expect(response.flights || response).toBeDefined();
     });
 
-    it("can GET /v1/flights/search with type=arrival", async () => {
-        const response = await api.get("/v1/flights/search?type=arrival");
+    it("can GET /v2/flights/search with type=arrival", async () => {
+        const response = await api.get("/v2/flights/search?type=arrival");
         expect(response).toBeDefined();
         expect(response.flights || response).toBeDefined();
     });
 
-    it("can GET /v1/info/no-fly-list", async () => {
-        const response = await api.get("/v1/info/no-fly-list");
+    it("can GET /v2/info/no-fly-list", async () => {
+        const response = await api.get("/v2/info/no-fly-list");
         expect(response).toBeDefined();
         expect(response.noFlyList).toBeDefined();
         expect(Array.isArray(response.noFlyList)).toBe(true);
@@ -53,7 +53,7 @@ describe.skipIf(SKIP_LIVE)("live API smoke tests", () => {
         // Make multiple rapid requests to test rate limit handling
         const requests = [];
         for (let i = 0; i < 5; i++) {
-            requests.push(api.get("/v1/flights/search"));
+            requests.push(api.get("/v2/flights/search"));
         }
 
         try {
@@ -69,7 +69,7 @@ describe.skipIf(SKIP_LIVE)("live API smoke tests", () => {
 
     it("API responds within timeout", async () => {
         const startTime = Date.now();
-        const response = await api.get("/v1/flights/search");
+        const response = await api.get("/v2/flights/search");
         const elapsed = Date.now() - startTime;
         expect(response).toBeDefined();
         // Should complete well within 15 second timeout

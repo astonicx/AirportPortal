@@ -4,6 +4,11 @@ const api = require("../utils/apiClient");
 const { getCached, putCached } = require("../utils/cache");
 const { db } = require("../db");
 const { SEATS } = require("../utils/seats");
+const flightV2 = require("../utils/flightV2");
+
+// Flights become non-bookable once they are within this many hours of the
+// moment they are at our airport. (V2 raises the legacy 24h window to 36h.)
+const ADVANCE_BOOKING_HOURS = 36;
 
 // The airport this portal serves. A flight is bookable here only when it is
 // landing at this airport, i.e. `landingAt === HOME_AIRPORT`. The upstream
@@ -64,15 +69,20 @@ function normalizeFlight(f) {
         from: arriving ? (f.comingFrom || "") : (f.landingAt || ""),
         to: arriving ? (f.landingAt || "") : (f.departingTo || ""),
         // A flight can be booked here only when it lands at our airport, is
-        // flagged bookable + scheduled, and arrives more than 24h from now.
+        // flagged bookable + scheduled, and arrives more than 36h from now.
         canBook:
             !!f.bookable &&
             f.status === "scheduled" &&
             landsAtHome(f) &&
-            new Date(f.arriveAtReceiver || 0).getTime() > Date.now() + 24 * 3600 * 1000,
+            new Date(f.arriveAtReceiver || 0).getTime() >
+                Date.now() + ADVANCE_BOOKING_HOURS * 3600 * 1000,
         time,
         timeMs: whenMs || 0,
         seatPrice: f.seatPrice ?? f.seat_price ?? 0,
+        seatClasses: flightV2.seatClasses(f),
+        baggageAllowance: flightV2.baggageAllowance(f),
+        availableExtras: flightV2.availableExtras(f),
+        ffmCredit: flightV2.ffmCredit(f),
     };
 }
 
@@ -107,7 +117,7 @@ router.get("/", async (req, res, next) => {
             // Without it the API returns the oldest flights, which are all
             // already "past"/"cancelled".
             const upstream = await api.get(
-                `/v1/flights/search?type=${type}&sort=desc`
+                `/v2/flights/search?type=${type}&sort=desc`
             );
             flights = upstream.flights || upstream || [];
         } catch (e) {
@@ -179,8 +189,8 @@ router.get("/search", async (req, res, next) => {
             // home airport only. `sort=desc` returns the newest (currently
             // scheduled/bookable) flights.
             const [arr, dep] = await Promise.all([
-                api.get("/v1/flights/search?type=arrival&sort=desc"),
-                api.get("/v1/flights/search?type=departure&sort=desc"),
+                api.get("/v2/flights/search?type=arrival&sort=desc"),
+                api.get("/v2/flights/search?type=departure&sort=desc"),
             ]);
             const merged = [
                 ...(arr.flights || arr || []),
@@ -196,7 +206,7 @@ router.get("/search", async (req, res, next) => {
                 .map((r) => JSON.parse(r.payload_json));
         }
 
-        const cutoff = Date.now() + 24 * 3600 * 1000;
+        const cutoff = Date.now() + ADVANCE_BOOKING_HOURS * 3600 * 1000;
         const results = flights.filter((f) => {
             // Bookable flights are the ones present at our airport (landingAt ===
             // HOME_AIRPORT) that then depart to another destination. Guests book
@@ -284,7 +294,7 @@ router.get("/home-airport", async (req, res, next) => {
         }
         let flights = [];
         try {
-            const upstream = await api.get("/v1/flights/search?type=arrival&sort=desc");
+            const upstream = await api.get("/v2/flights/search?type=arrival&sort=desc");
             flights = upstream.flights || upstream || [];
         } catch {
             flights = db
@@ -305,7 +315,7 @@ router.get("/:id", async (req, res, next) => {
     try {
         const cached = getCached(req.params.id);
         if (cached) return res.json(normalizeFlight(cached.payload));
-        const data = await api.get(`/v1/flights/search?flight_id=${req.params.id}`);
+        const data = await api.get(`/v2/flights/search?flight_id=${req.params.id}`);
         const flight = (data.flights || [])[0];
         if (!flight) return res.status(404).json({ error: "Flight not found" });
         putCached(req.params.id, flight);
@@ -315,9 +325,30 @@ router.get("/:id", async (req, res, next) => {
     }
 });
 
+// ── GET /api/flights/:id/baggage ────────────────────────────────────────────
+// Dynamic baggage pricing for the flight, derived from the V2 upstream payload
+// (with a legacy-compatible default when the upstream omits it).
+router.get("/:id/baggage", (req, res) => {
+    const cached = getCached(req.params.id);
+    const flight = cached?.payload || {};
+    res.json(flightV2.baggageAllowance(flight));
+});
+
 // ── GET /api/flights/:id/seats ──────────────────────────────────────────────
 router.get("/:id/seats", (req, res) => {
     const flightId = req.params.id;
+    const cached = getCached(flightId);
+    const classes = flightV2.seatClasses(cached?.payload || {});
+    // Map each physical seat to a class + price. Seat rows are assigned to
+    // classes in order (first rows = highest tier when multiple classes exist).
+    const seatClassOf = (seat) => {
+        if (classes.length <= 1) return classes[0] || { class: "economy", priceCents: 0 };
+        const row = parseInt(String(seat).replace(/[^0-9]/g, ""), 10) || 0;
+        // Distribute rows evenly across the available classes.
+        const perClass = Math.ceil(15 / classes.length);
+        const idx = Math.min(classes.length - 1, Math.floor((row - 1) / perClass));
+        return classes[idx];
+    };
     const taken = new Set(
         db
             .prepare("SELECT seat FROM tickets WHERE flight_id=? AND status='active'")
@@ -330,15 +361,22 @@ router.get("/:id/seats", (req, res) => {
         .all(flightId);
     const mySessionId = req.bookingSessionId;
     res.json({
+        seatClasses: classes,
         seats: SEATS.map((s) => {
-            if (taken.has(s)) return { seat: s, state: "taken" };
+            const sc = seatClassOf(s);
+            const cls = sc?.class || "economy";
+            const priceCents = sc?.priceCents ?? 0;
+            if (taken.has(s))
+                return { seat: s, state: "taken", class: cls, priceCents };
             const lock = locks.find((l) => l.seat === s);
             if (lock)
                 return {
                     seat: s,
                     state: lock.session_id === mySessionId ? "mine" : "locked",
+                    class: cls,
+                    priceCents,
                 };
-            return { seat: s, state: "available" };
+            return { seat: s, state: "available", class: cls, priceCents };
         }),
     });
 });

@@ -79,7 +79,7 @@ export const fixtureNoFlyList = {
 // ─── Handlers: Success Cases ────────────────────────────────────────────────
 
 export const successHandlers = [
-    http.get(`${BASE}/v1/flights/search`, ({ request }) => {
+    http.get(`${BASE}/v2/flights/search`, ({ request }) => {
         const url = new URL(request.url);
         const flightId = url.searchParams.get("flight_id");
         if (flightId) {
@@ -88,15 +88,15 @@ export const successHandlers = [
         return HttpResponse.json(fixtureFlightList);
     }),
 
-    http.get(`${BASE}/v1/info/no-fly-list`, () => {
+    http.get(`${BASE}/v2/info/no-fly-list`, () => {
         return HttpResponse.json(fixtureNoFlyList);
     }),
 
-    http.post(`${BASE}/v1/flights/:id/book`, () => {
+    http.post(`${BASE}/v2/flights/:id/book`, () => {
         return HttpResponse.json({ ok: true, booked: true });
     }),
 
-    http.delete(`${BASE}/v1/tickets/:id`, () => {
+    http.delete(`${BASE}/v2/tickets/:id`, () => {
         return HttpResponse.json({ ok: true });
     }),
 ];
@@ -105,45 +105,45 @@ export const successHandlers = [
 
 export const errorHandlers = {
     badRequest: [
-        http.get(`${BASE}/v1/flights/search`, () => {
+        http.get(`${BASE}/v2/flights/search`, () => {
             return HttpResponse.json({ error: "Invalid query parameters" }, { status: 400 });
         }),
-        http.get(`${BASE}/v1/info/no-fly-list`, () => {
+        http.get(`${BASE}/v2/info/no-fly-list`, () => {
             return HttpResponse.json({ error: "Invalid query parameters" }, { status: 400 });
         }),
     ],
     unauthorized: [
-        http.get(`${BASE}/v1/flights/search`, () => {
+        http.get(`${BASE}/v2/flights/search`, () => {
             return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
         }),
-        http.get(`${BASE}/v1/info/no-fly-list`, () => {
+        http.get(`${BASE}/v2/info/no-fly-list`, () => {
             return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
         }),
     ],
     forbidden: [
-        http.get(`${BASE}/v1/flights/search`, () => {
+        http.get(`${BASE}/v2/flights/search`, () => {
             return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
         }),
-        http.get(`${BASE}/v1/info/no-fly-list`, () => {
+        http.get(`${BASE}/v2/info/no-fly-list`, () => {
             return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
         }),
     ],
     notFound: [
-        http.get(`${BASE}/v1/flights/search`, () => {
+        http.get(`${BASE}/v2/flights/search`, () => {
             return HttpResponse.json({ error: "Not found" }, { status: 404 });
         }),
-        http.get(`${BASE}/v1/info/no-fly-list`, () => {
+        http.get(`${BASE}/v2/info/no-fly-list`, () => {
             return HttpResponse.json({ error: "Not found" }, { status: 404 });
         }),
     ],
     rateLimit: [
-        http.get(`${BASE}/v1/flights/search`, () => {
+        http.get(`${BASE}/v2/flights/search`, () => {
             return HttpResponse.json(
                 { error: "Too many requests" },
                 { status: 429, headers: { "Retry-After": "60" } }
             );
         }),
-        http.get(`${BASE}/v1/info/no-fly-list`, () => {
+        http.get(`${BASE}/v2/info/no-fly-list`, () => {
             return HttpResponse.json(
                 { error: "Too many requests" },
                 { status: 429, headers: { "Retry-After": "60" } }
@@ -151,26 +151,26 @@ export const errorHandlers = {
         }),
     ],
     serverError: [
-        http.get(`${BASE}/v1/flights/search`, () => {
+        http.get(`${BASE}/v2/flights/search`, () => {
             return HttpResponse.json({ error: "Internal server error" }, { status: 500 });
         }),
-        http.get(`${BASE}/v1/info/no-fly-list`, () => {
+        http.get(`${BASE}/v2/info/no-fly-list`, () => {
             return HttpResponse.json({ error: "Internal server error" }, { status: 500 });
         }),
     ],
     serviceUnavailable: [
-        http.get(`${BASE}/v1/flights/search`, () => {
+        http.get(`${BASE}/v2/flights/search`, () => {
             return HttpResponse.json({ error: "Service unavailable" }, { status: 503 });
         }),
-        http.get(`${BASE}/v1/info/no-fly-list`, () => {
+        http.get(`${BASE}/v2/info/no-fly-list`, () => {
             return HttpResponse.json({ error: "Service unavailable" }, { status: 503 });
         }),
     ],
     retryableError: [
-        http.get(`${BASE}/v1/flights/search`, () => {
+        http.get(`${BASE}/v2/flights/search`, () => {
             return HttpResponse.json({ error: "Upstream temporarily unavailable" }, { status: 555 });
         }),
-        http.get(`${BASE}/v1/info/no-fly-list`, () => {
+        http.get(`${BASE}/v2/info/no-fly-list`, () => {
             return HttpResponse.json({ error: "Upstream temporarily unavailable" }, { status: 555 });
         }),
     ],
@@ -179,7 +179,7 @@ export const errorHandlers = {
 // ─── Handlers: Network Failures ────────────────────────────────────────────
 
 export const networkFailureHandler = [
-    http.get(`${BASE}/v1/flights/search`, () => {
+    http.get(`${BASE}/v2/flights/search`, () => {
         return HttpResponse.error();
     }),
 ];
@@ -187,7 +187,7 @@ export const networkFailureHandler = [
 // ─── Handlers: Timeout (slow response) ─────────────────────────────────────
 
 export const timeoutHandler = [
-    http.get(`${BASE}/v1/flights/search`, async () => {
+    http.get(`${BASE}/v2/flights/search`, async () => {
         await new Promise((resolve) => setTimeout(resolve, 20000)); // 20 seconds
         return HttpResponse.json(fixtureFlightList);
     }),
@@ -196,19 +196,19 @@ export const timeoutHandler = [
 // ─── Handlers: Empty/Malformed Payloads ─────────────────────────────────────
 
 export const emptyPayloadHandler = [
-    http.get(`${BASE}/v1/flights/search`, () => {
+    http.get(`${BASE}/v2/flights/search`, () => {
         return HttpResponse.json(null);
     }),
 ];
 
 export const malformedPayloadHandler = [
-    http.get(`${BASE}/v1/flights/search`, () => {
+    http.get(`${BASE}/v2/flights/search`, () => {
         return HttpResponse.text("Not JSON {{{", { status: 200 });
     }),
 ];
 
 export const missingFieldsHandler = [
-    http.get(`${BASE}/v1/flights/search`, () => {
+    http.get(`${BASE}/v2/flights/search`, () => {
         return HttpResponse.json({
             flights: [
                 {
