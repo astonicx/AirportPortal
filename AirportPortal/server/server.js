@@ -28,6 +28,15 @@ seedRoot()
 
 const app = express();
 
+const allowedOrigins = (
+  process.env.CLIENT_ORIGINS ||
+  process.env.CLIENT_ORIGIN ||
+  "http://localhost:3000"
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 // Behind a reverse proxy (Codespaces, nginx, etc.) the client IP arrives in
 // the X-Forwarded-For header. Trust the first proxy hop so express-rate-limit
 // can key on the real client IP instead of throwing ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
@@ -42,7 +51,14 @@ app.use(
 );
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+    origin(origin, cb) {
+      // Allow non-browser clients (no Origin header) and explicit allowlisted origins.
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        return cb(null, true);
+      }
+      return cb(new Error("CORS origin not allowed"));
+    },
     credentials: true,
   })
 );

@@ -4,6 +4,25 @@ const { db } = require("../db");
 
 const COOKIE = "sid";
 
+function resolveSameSite() {
+    const raw = String(process.env.SESSION_COOKIE_SAME_SITE || "lax").toLowerCase();
+    return raw === "strict" || raw === "none" ? raw : "lax";
+}
+
+function resolveSecure(sameSite) {
+    const raw = String(process.env.SESSION_COOKIE_SECURE || "").toLowerCase();
+    if (raw === "true" || raw === "1") return true;
+    if (raw === "false" || raw === "0") return false;
+    // SameSite=None requires Secure in modern browsers.
+    return process.env.NODE_ENV === "production" || sameSite === "none";
+}
+
+const sharedCookieAttrs = (() => {
+    const sameSite = resolveSameSite();
+    const secure = resolveSecure(sameSite);
+    return { sameSite, secure };
+})();
+
 function newToken() {
     const id = randomBytes(16).toString("hex");
     const tok = randomBytes(32).toString("hex");
@@ -53,11 +72,18 @@ function destroy(sessionId) {
 
 const cookieOpts = (expires) => ({
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    ...sharedCookieAttrs,
     signed: false,
     expires: new Date(expires),
     path: "/",
 });
 
-module.exports = { COOKIE, issueSession, readCookie, slide, destroy, cookieOpts };
+module.exports = {
+    COOKIE,
+    issueSession,
+    readCookie,
+    slide,
+    destroy,
+    cookieOpts,
+    sharedCookieAttrs,
+};

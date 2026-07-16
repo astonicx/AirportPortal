@@ -5,8 +5,11 @@
   "scripts": {
     "dev": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
     "dev:all": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
+    "dev:shared": "concurrently \"npm:dev:client\" \"npm:dev:server:shared\"",
     "dev:client": "vite",
     "dev:server": "nodemon server/server.js",
+    "check:shared-env": "node scripts/validate-shared-env.js",
+    "dev:server:shared": "npm run check:shared-env && nodemon server/server.js",
     "build": "vite build",
     "build:full": "vite build && rm -rf server/public && cp -r dist server/public",
     "preview": "vite preview",

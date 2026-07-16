@@ -34,6 +34,36 @@ Run the frontend dev server (Vite, port 3000, proxies `/api` → backend):
 npm run dev
 ```
 
+### Shared Dev Backend (team uses one customer list)
+
+If multiple teammates need to see the same admin customers/logins, run one shared backend
+instance and point all frontends at it.
+
+On the machine hosting the shared backend (`.env`):
+
+```
+PORT=5000
+DB_PATH=/absolute/path/to/shared.sqlite
+CLIENT_ORIGINS=http://localhost:3000,https://<teammate-frontend-origin>
+SESSION_COOKIE_SAME_SITE=none
+SESSION_COOKIE_SECURE=true
+```
+
+Then each teammate sets their frontend env:
+
+```
+VITE_API_BASE_URL=https://<shared-backend-host>
+```
+
+Run helpers:
+- `npm run check:shared-env` validates required shared backend env values.
+- `npm run dev:server:shared` validates shared env values, then starts backend.
+- `npm run dev:shared` starts frontend + shared-config backend together.
+
+Notes:
+- SQLite is file-based, so data is local to the machine where the backend process runs.
+- `SameSite=None` + `Secure=true` is required for cross-origin auth cookies in browsers.
+
 Build the frontend for production:
 
 ```bash

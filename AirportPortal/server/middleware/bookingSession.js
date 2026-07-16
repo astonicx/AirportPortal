@@ -1,5 +1,6 @@
 "use strict";
 const { randomBytes } = require("crypto");
+const { sharedCookieAttrs } = require("../utils/session");
 
 const COOKIE = "bsid";
 
@@ -17,8 +18,7 @@ module.exports = function bookingSession(req, res, next) {
         id = randomBytes(16).toString("hex");
         res.cookie(COOKIE, id, {
             httpOnly: true,
-            sameSite: "lax",
-            secure: process.env.NODE_ENV === "production",
+            ...sharedCookieAttrs,
             maxAge: 1000 * 60 * 60 * 24, // 24h — ample for a single booking flow
             path: "/",
         });
