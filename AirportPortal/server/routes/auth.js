@@ -18,13 +18,17 @@ const {
 const userRole = (u) => u.user_type || u.type || "guest";
 
 function publicUser(u) {
+    const role = userRole(u);
     return {
         id: u.id,
-        type: userRole(u),
-        user_type: userRole(u),
+        type: role,
+        user_type: role,
+        role,
         firstName: u.first_name,
         lastName: u.last_name,
         email: u.email,
+        isBanned: Number(u.is_banned) === 1,
+        bannedReason: u.banned_reason || null,
         mustChangePassword: !!u.must_change_password,
         mustCompleteProfile: !!u.must_complete_profile,
         autoLogoutMinutes: u.auto_logout_minutes,

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useLiveResource } from "@/hooks/useLiveResource";
 import Spinner from "@/components/Spinner";
@@ -17,12 +17,24 @@ function fmtDateTime(value) {
 export default function Ticket() {
     const { code } = useParams();
     const [params] = useSearchParams();
+    const navigate = useNavigate();
     const lastName = params.get("last") || "";
     const [err, setErr] = useState(null);
     const [msg, setMsg] = useState(null);
 
     const path = `/api/tickets/by-confirmation?lastName=${encodeURIComponent(lastName)}&code=${encodeURIComponent(code)}`;
     const { data, error: loadError } = useLiveResource(path, { intervalMs: 30_000 });
+
+    useEffect(() => {
+        if (!data) return;
+        if (data.requires_checkin_first && !data.checked_in_at) {
+            const lname = lastName || data.ticket?.passenger_last || "";
+            navigate(
+                `/checkin?code=${encodeURIComponent(code)}&last=${encodeURIComponent(lname)}`,
+                { replace: true }
+            );
+        }
+    }, [data, code, lastName, navigate]);
 
     const cancel = async () => {
         if (!confirm("Cancel this ticket?")) return;

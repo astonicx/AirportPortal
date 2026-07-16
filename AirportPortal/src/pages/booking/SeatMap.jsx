@@ -9,25 +9,30 @@ export default function SeatMap() {
     const navigate = useNavigate();
     const { booking, update } = useBooking();
     const [seats, setSeats] = useState(null);
+    const [seatClasses, setSeatClasses] = useState([]);
     const [err, setErr] = useState(null);
     const [busy, setBusy] = useState(false);
 
     const load = async () => {
-        try { setSeats((await api.get(`/api/flights/${id}/seats`)).seats); }
+        try {
+            const data = await api.get(`/api/flights/${id}/seats`);
+            setSeats(data.seats);
+            setSeatClasses(data.seatClasses || []);
+        }
         catch (e) { setErr(e); }
     };
 
     useEffect(() => {
         load();
-        const t = setInterval(load, 15_000);
+        const t = setInterval(load, 10_000);
         return () => clearInterval(t);
     }, [id]);
 
-    const pick = async (seat) => {
+    const pick = async (seat, seatClass) => {
         setBusy(true); setErr(null);
         try {
-            await api.post(`/api/flights/${id}/seats/lock`, { seat });
-            update({ seat });
+            await api.post(`/api/flights/${id}/seats/lock`, { seat, seatClass });
+            update({ seat, seatClass });
             await load();
         } catch (e) { setErr(e); }
         finally { setBusy(false); }
@@ -44,6 +49,18 @@ export default function SeatMap() {
         <div className="mx-auto max-w-xl space-y-4">
             <h1>Pick a seat</h1>
             {err && <p className="text-destructive">{err.message}</p>}
+            {!!seatClasses.length && (
+                <div className="rounded-lg border border-border/70 bg-secondary/40 p-3 text-xs">
+                    <p className="mb-2 font-semibold text-foreground">Seat classes</p>
+                    <div className="flex flex-wrap gap-2">
+                        {seatClasses.map((c) => (
+                            <span key={c.class} className="rounded-full border border-border px-2 py-1">
+                                {c.class.replace(/_/g, " ")} · ${(Number(c.priceCents || 0) / 100).toFixed(2)}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
             <div className="space-y-1">
                 {Object.entries(rows).map(([r, list]) => (
                     <div key={r} className="flex items-center gap-1">
@@ -59,9 +76,10 @@ export default function SeatMap() {
                                 <button
                                     key={s.seat}
                                     disabled={s.state === "taken" || s.state === "locked" || busy}
-                                    onClick={() => pick(s.seat)}
+                                    onClick={() => pick(s.seat, s.class)}
                                     className={`${base} ${color}`}
                                     aria-pressed={s.state === "mine"}
+                                    title={`${s.seat} · ${String(s.class || "economy").replace(/_/g, " ")} · $${(Number(s.priceCents || 0) / 100).toFixed(2)}`}
                                 >
                                     {s.seat.replace(/^\d+/, "")}
                                 </button>
@@ -75,7 +93,7 @@ export default function SeatMap() {
                 onClick={() => navigate(`/book/${id}/bags`)}
                 className="btn-primary"
             >
-                Continue → Bags
+                Continue → Bags {booking.seatClass ? `(${String(booking.seatClass).replace(/_/g, " ")})` : ""}
             </button>
         </div>
     );

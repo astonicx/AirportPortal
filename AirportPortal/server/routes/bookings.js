@@ -170,13 +170,17 @@ router.post("/", async (req, res, next) => {
         }
 
         const code = confirmationCode();
+        const spentFfm = ffmToApply + extrasFfm;
+        const earnedFfm = req.user && total > 0 ? Math.max(0, flightV2.ffmCredit(flight)) : 0;
+
         const info = db
             .prepare(
                 `INSERT INTO tickets
          (confirmation_code, user_id, flight_id, passenger_first, passenger_middle, passenger_last,
           passenger_dob, passenger_gender, passenger_email, passenger_phone, seat,
-          carry_on_count, checked_count, subtotal_cents, fees_cents, total_cents)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          seat_class, carry_on_count, checked_count, subtotal_cents, fees_cents, total_cents,
+          ffm_spent, ffm_earned)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
             )
             .run(
                 code,
@@ -190,11 +194,14 @@ router.post("/", async (req, res, next) => {
                 data.passenger.email,
                 data.passenger.phone,
                 data.seat,
+                data.seatClass || null,
                 data.carryOnCount,
                 data.checkedCount,
                 seatPriceCents,
                 fees,
-                total
+                total,
+                req.user ? spentFfm : 0,
+                req.user ? earnedFfm : 0
             );
 
         db.prepare("DELETE FROM seat_locks WHERE flight_id=? AND seat=?").run(
@@ -212,9 +219,9 @@ router.post("/", async (req, res, next) => {
         }
         let ffmBalance = null;
         if (req.user) {
-            const spent = ffmToApply + extrasFfm;
+            const spent = spentFfm;
             if (spent > 0) ffm.spend(req.user.id, spent);
-            const credit = flightV2.ffmCredit(flight);
+            const credit = earnedFfm;
             if (total > 0 && credit > 0) ffm.earn(req.user.id, credit);
             ffmBalance = ffm.getBalance(req.user.id).ffmBalance;
         }

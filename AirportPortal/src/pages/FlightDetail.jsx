@@ -31,7 +31,7 @@ export default function FlightDetail() {
     const canBook =
         flight.bookable && flight.status === "scheduled" &&
         landsHere &&
-        new Date(flight.arriveAtReceiver || 0).getTime() > Date.now() + 24 * 3600_000;
+        new Date(flight.arriveAtReceiver || 0).getTime() > Date.now() + 36 * 3600_000;
 
     return (
         <div className="animate-in-up mx-auto max-w-2xl space-y-5">
