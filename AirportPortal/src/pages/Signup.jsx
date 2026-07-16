@@ -28,7 +28,6 @@ export default function Signup() {
         state: "",
         zip: "",
         country: "",
-        loginDisambiguator: "",
     });
     const [sq, setSq] = useState([
         { question: QUESTIONS[0], answer: "" },
@@ -91,7 +90,6 @@ export default function Signup() {
             setSuccess({
                 firstName: form.firstName,
                 lastName: form.lastName,
-                disambiguator: r.disambiguator || null,
             });
         } catch (err) {
             setError(err.data?.error || err.message);
@@ -111,22 +109,6 @@ export default function Signup() {
                     <p className="text-muted-foreground">
                         Welcome, {success.firstName} {success.lastName}! Your account is ready.
                     </p>
-                    {success.disambiguator ? (
-                        <div className="rounded-lg border border-primary/40 bg-primary/10 p-4 text-left text-sm">
-                            <p className="font-semibold">Another user shares your name.</p>
-                            <p className="mt-1">
-                                Your login <strong>disambiguator</strong> is{" "}
-                                <span className="rounded bg-white px-2 py-0.5 font-mono text-base shadow-sm">
-                                    {success.disambiguator}
-                                </span>
-                                . Keep it handy — you’ll need it to log in.
-                            </p>
-                        </div>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">
-                            Your name is unique, so no disambiguator is needed to log in.
-                        </p>
-                    )}
                     <Link
                         to="/login"
                         className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm transition-all hover:shadow-md hover:brightness-110"
@@ -151,7 +133,6 @@ export default function Signup() {
                     ["First name", "firstName", "given-name", true],
                     ["Middle name", "middleName", "additional-name", false],
                     ["Last name", "lastName", "family-name", true],
-                    ["Disambiguator (if name taken)", "loginDisambiguator", "off", false],
                     ["Email", "email", "email", true, "email"],
                     ["Date of birth (YYYY-MM-DD)", "dob", "bday", true],
                     ["Gender", "gender", "sex", true],
