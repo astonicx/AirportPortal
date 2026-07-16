@@ -22,3 +22,4 @@ node_modules/.vite/
 server/data.sqlite
 server/data.sqlite-shm
 server/data.sqlite-wal
+server/data.sqlite.corrupt-*
