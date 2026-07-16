@@ -40,6 +40,7 @@ function Nav() {
                     <NavLink to="/flights" className={link}>Flights</NavLink>
                     <NavLink to="/book" className={link}>Book</NavLink>
                     <NavLink to="/ticket-lookup" className={link}>Lookup</NavLink>
+                    {user && <NavLink to="/checkin" className={link}>Check in</NavLink>}
                     {user && <NavLink to="/dashboard" className={link}>Dashboard</NavLink>}
                     {user && <NavLink to="/settings" className={link}>Settings</NavLink>}
                     {(user?.type === "admin" || user?.type === "root") && (
@@ -85,6 +86,7 @@ function Nav() {
                     <NavLink to="/flights" className={link}>Flights</NavLink>
                     <NavLink to="/book" className={link}>Book</NavLink>
                     <NavLink to="/ticket-lookup" className={link}>Lookup</NavLink>
+                    {user && <NavLink to="/checkin" className={link}>Check in</NavLink>}
                     {user && <NavLink to="/dashboard" className={link}>Dashboard</NavLink>}
                     {user && <NavLink to="/settings" className={link}>Settings</NavLink>}
                     {(user?.type === "admin" || user?.type === "root") && (
@@ -137,7 +139,7 @@ export default function Layout() {
                 key={loc.pathname}
                 className="container flex-1 animate-in-fade py-8"
             >
-                <div className="flex items-start gap-6">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
                     <div className="min-w-0 flex-1">
                         <Outlet />
                     </div>

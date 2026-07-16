@@ -29,7 +29,7 @@ export default function UpcomingSidebar() {
     const flight = next?.flight || null;
 
     return (
-        <aside className="hidden w-72 shrink-0 xl:block">
+        <aside className="w-full shrink-0 lg:w-72">
             <div className="sticky top-24 space-y-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
                 <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">Account</p>
